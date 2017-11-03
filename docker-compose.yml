@@ -1,0 +1,42 @@
+version: '2'
+
+services:
+  play-app:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT"
+    mem_limit: 100000000
+    labels:
+      kompose.service.type: nodeport
+    ports:
+      - "80:9000"
+  redis:
+    image: redis
+    mem_limit: 50000000
+    ports:
+      - "6379:6379"
+  redis-populate:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/redis-populate:latest"
+    mem_limit: 10000000
+  scrapyd:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
+    mem_limit: 100000000
+    volumes:
+      - scrapyd:/var/lib/scrapyd
+    command: scrapyd --pidfile='' 
+  scrapyd-deploy:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
+    mem_limit: 10000000
+    command: ./wait-for-it.sh -t 100 scrapyd:6800 -- scrapyd-deploy aws
+  periodic-crawl:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
+    volumes:
+      - scrapyd:/var/lib/scrapyd
+    mem_limit: 50000000
+    command: ./wait-for-it.sh -t 100 scrapyd:6800 -- cron -f
+  dedupe-on-demand:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
+    volumes:
+      - scrapyd:/var/lib/scrapyd
+    mem_limit: 100000000
+    command: ./wait-for-it.sh -t 100 scrapyd:6800 -- ./dedupe-on-demand.sh
+volumes:
+  scrapyd:

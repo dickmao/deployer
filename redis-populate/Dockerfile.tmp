@@ -1,0 +1,6 @@
+
+FROM redis
+MAINTAINER dick <noreply@shunyet.com>
+COPY ./.redin.tmp ./redin.tmp
+CMD ["/bin/sh", "-c", "cat redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100"]
+    
