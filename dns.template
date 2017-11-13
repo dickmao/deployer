@@ -1,0 +1,598 @@
+{
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "ECS Environment with Service Discovery",
+    "Parameters": {
+      "EcsAmiId": {
+        "Type": "String",
+        "Description": "ECS EC2 AMI id",
+        "Default": ""
+      },
+      "EcsInstanceType": {
+        "Type": "String",
+        "Description": "ECS EC2 instance type",
+        "Default": "t2.micro",
+        "AllowedValues": [
+          "t2.nano",
+          "t2.micro",
+          "t2.small",
+          "t2.medium",
+          "t2.large",
+          "m3.medium",
+          "m3.large",
+          "m3.xlarge",
+          "m3.2xlarge",
+          "m4.large",
+          "m4.xlarge",
+          "m4.2xlarge",
+          "m4.4xlarge",
+          "m4.10xlarge",
+          "c4.large",
+          "c4.xlarge",
+          "c4.2xlarge",
+          "c4.4xlarge",
+          "c4.8xlarge",
+          "c3.large",
+          "c3.xlarge",
+          "c3.2xlarge",
+          "c3.4xlarge",
+          "c3.8xlarge",
+          "p2.xlarge",
+          "p2.8xlarge",
+          "p2.16xlarge",
+          "g2.2xlarge",
+          "g2.16xlarge",
+          "x1.16xlarge",
+          "x1.32xlarge",
+          "r3.large",
+          "r3.xlarge",
+          "r3.2xlarge",
+          "r3.4xlarge",
+          "r3.8xlarge",
+          "r4.large",
+          "r4.xlarge",
+          "r4.2xlarge",
+          "r4.4xlarge",
+          "r4.8xlarge",
+          "r4.16xlarge",
+          "i2.xlarge",
+          "i2.2xlarge",
+          "i2.4xlarge",
+          "i2.8xlarge",
+          "g2.2xlarge",
+          "g2.8xlarge",
+          "d2.xlarge",
+          "d2.2xlarge",
+          "d2.4xlarge",
+          "d2.8xlarge"
+        ],
+        "ConstraintDescription": "must be a valid EC2 instance type."
+      },
+      "KeyName": {
+        "Type": "AWS::EC2::KeyPair::KeyName",
+        "Description": "Optional - Name of an existing EC2 KeyPair to enable SSH access to the ECS instances",
+        "Default": ""
+      },
+      "AsgMaxSize": {
+        "Type": "Number",
+        "Description": "Maximum size and initial Desired Capacity of ECS Auto Scaling Group",
+        "Default": "1"
+      },
+      "EcsCluster" : {
+        "Type" : "String",
+        "Description" : "ECS Cluster Name",
+        "Default" : "default"
+      },
+      "VolumeName" : {
+        "Description" : "The name to be used for the EFS volume",
+        "Type": "String",
+        "MinLength": "1",
+        "Default": "efs"
+      },
+      "MountPoint" : {
+        "Description" : "The Linux mount point for the EFS volume",
+        "Type": "String",
+        "MinLength": "1",
+        "Default": "efs"
+      },
+      "ScrapydHostpath" : {
+        "Description" : "Efs path to bind mount in docker containers",
+        "Type": "String",
+        "MinLength": "1",
+        "Default": "var/lib/scrapyd"
+      }
+    },
+    "Mappings" : {
+        "VPCLayout" : {
+            "VPC" : { "CIDR" : "10.5.0.0/16" },
+            "PublicSubnet1Config" : { "CIDR" : "10.5.10.0/24" },
+            "PublicSubnet2Config" : { "CIDR" : "10.5.15.0/24" }
+        }
+    },
+    "Resources" : {
+        "VPC" : {
+            "Type" : "AWS::EC2::VPC",
+            "Properties" : {
+                "EnableDnsSupport" : "true",
+                "EnableDnsHostnames" : "true",
+                "CidrBlock" :  { "Fn::FindInMap" : [ "VPCLayout", "VPC", "CIDR" ]},
+                "Tags" : [
+                    {
+                        "Key" : "VPC",
+                        "Value" : "ECS"
+                    },
+                    {
+                        "Key" : "Name",
+                        "Value" : "ECS refarch service discovery"
+                    }
+                ]
+            }
+        },
+        "HostedZone": {
+            "Type": "AWS::Route53::HostedZone",
+            "Properties": {
+                "HostedZoneConfig": { "Comment": "Hosted Zone for ECS Service Discovery" },
+                "Name": { "Fn::Join": [ ".", [ { "Ref": "EcsCluster" }, "internal" ] ] },
+                "VPCs": [{
+                    "VPCId": { "Ref": "VPC" },
+                    "VPCRegion": {"Ref": "AWS::Region"}
+                }]
+            }
+        },
+        "InternetGateway" : {
+            "Type" : "AWS::EC2::InternetGateway",
+            "DependsOn" : "VPC"
+        },
+        "AttachGateway" : {
+            "Type" : "AWS::EC2::VPCGatewayAttachment",
+            "DependsOn" : [
+                "VPC",
+                "InternetGateway"
+            ],
+            "Properties" : {
+                "VpcId" : {
+                    "Ref" : "VPC"
+                },
+                "InternetGatewayId" : {
+                    "Ref" : "InternetGateway"
+                }
+            }
+        },
+        "PublicSubnet1" : {
+            "Type" : "AWS::EC2::Subnet",
+            "DependsOn" : "AttachGateway",
+            "Properties" : {
+                "VpcId" : { "Ref" : "VPC" },
+                "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet1Config", "CIDR" ]},
+                "AvailabilityZone" : {
+                    "Fn::Select" : [
+                        "0",
+                        {
+                            "Fn::GetAZs" : ""
+                        }
+                    ]
+                },
+                "Tags" : [
+                    {
+                        "Key" : "Name",
+                        "Value" : "Public Subnet 1"
+                    }
+                ]
+            }
+        },
+        "PublicSubnet2" : {
+            "Type" : "AWS::EC2::Subnet",
+            "DependsOn" : "AttachGateway",
+            "Properties" : {
+                "VpcId" : { "Ref" : "VPC" },
+                "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet2Config", "CIDR" ]},
+                "AvailabilityZone" : {
+                    "Fn::Select" : [
+                        "1",
+                        {
+                            "Fn::GetAZs" : ""
+                        }
+                    ]
+                },
+                "Tags" : [
+                    {
+                        "Key" : "Name",
+                        "Value" : "Public Subnet 2"
+                    }
+                ]
+            }
+        },
+        "PublicRouteTable" : {
+            "Type" : "AWS::EC2::RouteTable",
+            "DependsOn" : [
+                "VPC",
+                "AttachGateway"
+            ],
+            "Properties" : {
+                "VpcId" : {
+                    "Ref" : "VPC"
+                },
+                "Tags" : [
+                    {
+                        "Key" : "Name",
+                        "Value" : "Public"
+                    }
+                ]
+            }
+        },
+        "PublicRoute" : {
+            "Type" : "AWS::EC2::Route",
+            "DependsOn" : [
+                "PublicRouteTable",
+                "AttachGateway"
+            ],
+            "Properties" : {
+                "RouteTableId" : {
+                    "Ref" : "PublicRouteTable"
+                },
+                "DestinationCidrBlock" : "0.0.0.0/0",
+                "GatewayId" : {
+                    "Ref" : "InternetGateway"
+                }
+            }
+        },
+        "PublicSubnet1RouteTableAssociation" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn" : [
+                "PublicRouteTable",
+                "PublicSubnet1",
+                "AttachGateway"
+            ],
+            "Properties" : {
+                "SubnetId" : {
+                    "Ref" : "PublicSubnet1"
+                },
+                "RouteTableId" : {
+                    "Ref" : "PublicRouteTable"
+                }
+            }
+        },
+        "PublicSubnet2RouteTableAssociation" : {
+            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+            "DependsOn" : [
+                "PublicRouteTable",
+                "PublicSubnet2"
+            ],
+            "Properties" : {
+                "SubnetId" : {
+                    "Ref" : "PublicSubnet2"
+                },
+                "RouteTableId" : {
+                    "Ref" : "PublicRouteTable"
+                }
+            }
+        },
+        "EcsInstanceSecurityGroup" : {
+            "Type" : "AWS::EC2::SecurityGroup",
+            "DependsOn" : "AttachGateway",
+            "Properties" : {
+                "GroupDescription" : "Security Group for EcsInstance",
+                "VpcId" : {
+                    "Ref" : "VPC"
+                },
+                "Tags" : [
+                    {
+                        "Key" : "Name",
+                        "Value" : "EcsInstanceSecurityGroup"
+                    }
+                ]
+            }
+        },
+        "EcsInstanceSecurityGroupApps" : {
+            "Type" : "AWS::EC2::SecurityGroupIngress",
+            "DependsOn" : "EcsInstanceSecurityGroup",
+            "Properties" : {
+                "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
+                "IpProtocol" : "tcp",
+                "FromPort" : 0,
+                "ToPort" : 65535,
+                "SourceSecurityGroupId" : { "Ref" : "EcsInstanceSecurityGroup" }
+            }
+        },
+        "EcsInstanceSecurityGroupAppsSSH" : {
+            "Type" : "AWS::EC2::SecurityGroupIngress",
+            "DependsOn" : "EcsInstanceSecurityGroup",
+            "Properties" : {
+                "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
+                "IpProtocol" : "tcp",
+                "FromPort" : 22,
+                "ToPort" : 22,
+                "CidrIp" : "0.0.0.0/0"
+            }
+        },
+        "EcsInstanceSecurityGroupAppsWeb" : {
+            "Type" : "AWS::EC2::SecurityGroupIngress",
+            "DependsOn" : "EcsInstanceSecurityGroup",
+            "Properties" : {
+                "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
+                "IpProtocol" : "tcp",
+                "FromPort" : 80,
+                "ToPort" : 80,
+                "CidrIp" : "0.0.0.0/0"
+            }
+        },
+        "MountTargetSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "VpcId": { "Ref": "VPC" },
+            "GroupDescription": "Security group for mount target",
+            "SecurityGroupIngress": [
+              {
+                "IpProtocol": "tcp",
+                "FromPort": "2049",
+                "ToPort": "2049",
+                "CidrIp": "0.0.0.0/0"
+              }
+            ]
+          }
+        },
+        "FileSystem": {
+          "Type": "AWS::EFS::FileSystem",
+          "Properties": {
+            "PerformanceMode": "generalPurpose",
+            "FileSystemTags": [
+              {
+                "Key": "Name",
+                "Value": { "Ref" : "VolumeName" }
+              }
+            ]
+          }
+        },
+        "MountTarget1": {
+          "Type": "AWS::EFS::MountTarget",
+          "Properties": {
+            "FileSystemId": { "Ref": "FileSystem" },
+            "SubnetId": { "Ref": "PublicSubnet1" },
+            "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
+          }
+        },
+        "MountTarget2": {
+          "Type": "AWS::EFS::MountTarget",
+          "Properties": {
+            "FileSystemId": { "Ref": "FileSystem" },
+            "SubnetId": { "Ref": "PublicSubnet2" },
+            "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
+          }
+        },
+        "LaunchConfig": {
+            "Type": "AWS::AutoScaling::LaunchConfiguration",
+            "Metadata" : {
+                "AWS::CloudFormation::Init" : {
+                    "configSets" : {
+                        "default" : [ "setup", "mount", "ecssd" ]
+                    },
+                    "setup" : {
+                        "packages" : {
+                          "yum" : {
+                            "nfs-utils" : []
+                          }
+                        },
+                        "files" : {
+                          "/home/ec2-user/post_nfsstat" : {
+                            "content" : { "Fn::Join" : [ "", [
+                                  "#!/bin/bash\n",
+                                  "\n",
+                                  "INPUT=\"$(cat)\"\n",
+                                  "CW_JSON_OPEN='{ \"Namespace\": \"EFS\", \"MetricData\": [ '\n",
+                                  "CW_JSON_CLOSE=' ] }'\n",
+                                  "CW_JSON_METRIC=''\n",
+                                  "METRIC_COUNTER=0\n",
+                                  "\n",
+                                  "for COL in 1 2 3 4 5 6; do\n",
+                                  "\n",
+                                  " COUNTER=0\n",
+                                  " METRIC_FIELD=$COL\n",
+                                  " DATA_FIELD=$(($COL+($COL-1)))\n",
+                                  "\n",
+                                  " while read line; do\n",
+                                  "   if [[ COUNTER -gt 0 ]]; then\n",
+                                  "\n",
+                                  "     LINE=`echo $line | tr -s ' ' `\n",
+                                  "     AWS_COMMAND=\"aws cloudwatch put-metric-data --region ", { "Ref": "AWS::Region" }, "\"\n",
+                                  "     MOD=$(( $COUNTER % 2))\n",
+                                  "\n",
+                                  "     if [ $MOD -eq 1 ]; then\n",
+                                  "       METRIC_NAME=`echo $LINE | cut -d ' ' -f $METRIC_FIELD`\n",
+                                  "     else\n",
+                                  "       METRIC_VALUE=`echo $LINE | cut -d ' ' -f $DATA_FIELD`\n",
+                                  "     fi\n",
+                                  "\n",
+                                  "     if [[ -n \"$METRIC_NAME\" && -n \"$METRIC_VALUE\" ]]; then\n",
+                                  "       INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)\n",
+                                  "       CW_JSON_METRIC=\"$CW_JSON_METRIC { \\\"MetricName\\\": \\\"$METRIC_NAME\\\", \\\"Dimensions\\\": [{\\\"Name\\\": \\\"InstanceId\\\", \\\"Value\\\": \\\"$INSTANCE_ID\\\"} ], \\\"Value\\\": $METRIC_VALUE },\"\n",
+                                  "       unset METRIC_NAME\n",
+                                  "       unset METRIC_VALUE\n",
+                                  "\n",
+                                  "       METRIC_COUNTER=$((METRIC_COUNTER+1))\n",
+                                  "       if [ $METRIC_COUNTER -eq 20 ]; then\n",
+                                  "         # 20 is max metric collection size, so we have to submit here\n",
+                                  "         aws cloudwatch put-metric-data --region ", { "Ref": "AWS::Region" }, " --cli-input-json \"`echo $CW_JSON_OPEN ${CW_JSON_METRIC%?} $CW_JSON_CLOSE`\"\n",
+                                  "\n",
+                                  "         # reset\n",
+                                  "         METRIC_COUNTER=0\n",
+                                  "         CW_JSON_METRIC=''\n",
+                                  "       fi\n",
+                                  "     fi  \n",
+                                  "\n",
+                                  "\n",
+                                  "\n",
+                                  "     COUNTER=$((COUNTER+1))\n",
+                                  "   fi\n",
+                                  "\n",
+                                  "   if [[ \"$line\" == \"Client nfs v4:\" ]]; then\n",
+                                  "     # the next line is the good stuff \n",
+                                  "     COUNTER=$((COUNTER+1))\n",
+                                  "   fi\n",
+                                  " done <<< \"$INPUT\"\n",
+                                  "done\n",
+                                  "\n",
+                                  "# submit whatever is left\n",
+                                  "aws cloudwatch put-metric-data --region ", { "Ref": "AWS::Region" }, " --cli-input-json \"`echo $CW_JSON_OPEN ${CW_JSON_METRIC%?} $CW_JSON_CLOSE`\""
+                                ] ] },
+                            "mode": "000755",
+                            "owner": "ec2-user",
+                            "group": "ec2-user"
+                          },
+                          "/home/ec2-user/crontab" : {
+                            "content" : { "Fn::Join" : [ "", [
+                              "* * * * * /usr/sbin/nfsstat | /home/ec2-user/post_nfsstat\n"
+                            ] ] },
+                            "owner": "ec2-user",
+                            "group": "ec2-user"
+                          }
+                        },
+                        "commands" : {
+                          "01_createdir" : {
+                            "command" : {"Fn::Join" : [ "", [ "mkdir /", { "Ref" : "MountPoint" }]]}
+                          }
+                        }
+                    },
+                    "mount" : {
+                        "commands" : {
+                          "01_mount" : {
+                            "command" : { "Fn::Sub": "sudo mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 ${FileSystem}.efs.${AWS::Region}.amazonaws.com:/ /${MountPoint}"}
+                          },
+                          "02_permissions" : {
+                            "command" : {"Fn::Join" : [ "", [ "chown ec2-user:ec2-user /", { "Ref" : "MountPoint" }]]}
+                          }
+                        }
+                    },
+                    "ecssd" : {
+                        "files" : {
+                            "/etc/init/ecssd_agent.conf" : {
+                                "content" : { "Fn::Join" : [ "", [
+                                  "description \"Amazon EC2 Container Service Discovery\"\n",
+                                  "start on stopped rc RUNLEVEL=[345]\n",
+                                  "stop on shutdown\n",
+                                  "\n",
+                                  "exec /usr/local/bin/ecssd_agent ", {"Ref": "EcsCluster"}, ".internal >> /var/log/ecssd_agent.log 2>&1\n",
+                                  "respawn\n"
+                                ]]},
+                                "mode"    : "000644",
+                                "owner"   : "root",
+                                "group"   : "root"
+                            },
+                            "/usr/local/bin/ecssd_agent": {
+                                "source"  : "https://github.com/dickmao/service-discovery-ecs-dns/releases/download/1.5.1/ecssd_agent",
+                                "mode"    : "000755",
+                                "owner"   : "root",
+                                "group"   : "root"
+                            }
+                        }
+                    }
+                }
+            },
+            "Properties": {
+                "KeyName": { "Ref": "KeyName" },
+                "ImageId": { "Ref": "EcsAmiId" },
+                "SecurityGroups": [ { "Ref": "EcsInstanceSecurityGroup" } ],
+                "InstanceType": { "Ref": "EcsInstanceType" },
+                "AssociatePublicIpAddress" : "true",
+                "IamInstanceProfile": { "Fn::GetAtt" : ["InstanceProfile", "Arn"] },
+                "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+                    "#!/bin/bash -xe\n",
+                    "echo ECS_CLUSTER=", {"Ref": "EcsCluster"}, " >> /etc/ecs/ecs.config\n",
+                    "yum install -y aws-cfn-bootstrap\n",
+                    "yum update -y aws-cfn-bootstrap\n",
+                    "yum install -y bind-utils.x86_64\n",
+                    "/opt/aws/bin/cfn-init -v ",
+                    "         --stack ", { "Ref" : "AWS::StackName" },
+                    "         --resource LaunchConfig ",
+                    "         --configsets default ",
+                    "         --region ", { "Ref" : "AWS::Region" }, "\n",
+                    "crontab /home/ec2-user/crontab\n",
+                    "/opt/aws/bin/cfn-signal -e $? ",
+                    "         --stack ", { "Ref" : "AWS::StackName" },
+                    "         --resource ServerGroup ",
+                    "         --region ", { "Ref" : "AWS::Region" }, "\n",
+                    "mkdir -p /", {"Ref": "MountPoint"}, "/", { "Ref" : "ScrapydHostpath"}, "\n",
+                    "chown ec2-user:ec2-user /", { "Ref" : "MountPoint" }, "/$(basename $(echo ", { "Ref" : "ScrapydHostpath"}, " | rev) | rev)" , "\n",
+                    "start ecssd_agent\n"
+                ]]}}
+            }
+        },
+        "ServerGroup": {
+            "Type": "AWS::AutoScaling::AutoScalingGroup",
+            "CreationPolicy" : {
+              "ResourceSignal" : {
+                "Timeout" : "PT15M",
+                "Count"   : { "Ref": "AsgMaxSize" }
+              }
+            },
+            "DependsOn": ["MountTarget1", "MountTarget2", "AttachGateway"],
+            "Properties": {
+                "AvailabilityZones" : [
+                    { "Fn::GetAtt" : [ "PublicSubnet1", "AvailabilityZone" ] },
+                    { "Fn::GetAtt" : [ "PublicSubnet2", "AvailabilityZone" ] }
+                ],
+
+                "VPCZoneIdentifier" : [
+                    { "Ref" : "PublicSubnet1" },
+                    { "Ref" : "PublicSubnet2" }
+                ],
+
+                "LaunchConfigurationName": { "Ref": "LaunchConfig" },
+                "MinSize": {"Ref": "AsgMaxSize"},
+                "MaxSize": {"Ref": "AsgMaxSize"},
+                "DesiredCapacity": {"Ref": "AsgMaxSize"},
+                "Tags" : [
+                    { "Key" : "Application", "Value" : { "Ref" : "AWS::StackName" }, "PropagateAtLaunch" : "true" },
+                    { "Key" : "Name", "Value" : "Kiosk", "PropagateAtLaunch" : "true" }
+                ]
+            }
+        },
+        "InstanceRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ec2.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
+                    "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
+                    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
+                ],
+                "Path": "/"
+            }
+        },
+        "ECSRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version" : "2012-10-17",
+                    "Statement": [ {
+                        "Effect": "Allow",
+                        "Principal": {
+                            "Service": [ "ecs.amazonaws.com" ]
+                        },
+                        "Action": [ "sts:AssumeRole" ]
+                    } ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceRole"
+                ],
+                "Path": "/"
+            }
+        },
+        "InstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [ {
+                    "Ref": "InstanceRole"
+                } ]
+            }
+        }
+    }
+}

@@ -1,0 +1,7 @@
+version: 1
+task_definition:
+  services:
+    redis-populate:
+      essential: false
+    scrapyd-deploy:
+      essential: false
