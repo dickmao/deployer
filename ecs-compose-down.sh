@@ -4,9 +4,17 @@ source $(dirname $0)/ecs-utils.sh
 
 eval $(getServiceConfigs)
 
+declare -A extant
+for service in $(aws ecs list-services --cluster $STACK | jq -r '.serviceArns | .[]'); do
+    extant+=([-$(basename $service)]=1)
+done
+
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
-    ecs-cli compose -f ${wd}/docker-compose.yml -f ${STATEDIR}/docker-compose.${STACK}.yml service down$options
+    svcname=$(echo "${hofa[$k]}" | sed -e 's/|/-/g')
+    if test "${extant[$svcname]+isset}"; then
+      ecs-cli compose -p '' -f ${STATEDIR}/docker-compose.${STACK}.json service down$options
+    fi
 done
 
 for service in $(aws ecs list-services --cluster $STACK | jq -r '.serviceArns | .[]'); do

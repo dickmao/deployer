@@ -18,6 +18,9 @@ done
 wd=$(dirname $0)
 source ${wd}/ecs-utils.sh
 
+rendered_string=$(python render-docker-compose.py ecs --var cluster=$STACK)
+printf "$rendered_string" > $STATEDIR/docker-compose.$STACK.json
+
 eval $(getServiceConfigs)
 
 for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[] ') ; do
@@ -30,28 +33,9 @@ for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[
     fi
 done
 
-SERVICES="services:"
-for s0 in $(docker-compose config --services); do
-    SERVICES=$(cat << EOF
-${SERVICES}  
-  $s0:
-    volumes: 
-      - /etc/ecs:/etc/ecs
-      - /efs/var/lib/scrapyd:/var/lib/scrapyd
-    env_file: ../docker-ecs.env
-    dns_search: ${STACK}.internal
-EOF
-)
-done
-
-cat > ${STATEDIR}/docker-compose.${STACK}.yml <<EOF
-version: '2'
-${SERVICES}
-EOF
-
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
     if [ ${#only[@]} -eq 0 ] || test "${only[$k]+isset}"; then
-        ecs-cli compose -f ${wd}/docker-compose.yml -f ${STATEDIR}/docker-compose.${STACK}.yml service up$options
+        ecs-cli compose -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options
     fi
 done
