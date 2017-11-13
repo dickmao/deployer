@@ -5,19 +5,21 @@ services:
     image: redis
     mem_limit: 50000000
     ports:
-      - "6379:6379"
-    env_file: ./docker-compose.env
+      - "{{ redis_host_port }}:6379"
+    environment:
+      - SERVICE_6379_NAME=_redis._tcp
+    dns_search: {{ stack }}.internal
   redis-populate:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/redis-populate:latest"
-    env_file: ./docker-compose.env
     mem_limit: 10000000
     command: sh -c "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"
+    dns_search: {{ stack }}.internal
   play-app:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT"
     mem_limit: 400000000
-    env_file: ./docker-compose.env
     ports:
       - "80:9000"
+    dns_search: {{ stack }}.internal
   scrapyd:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
     mem_limit: 100000000
@@ -26,26 +28,28 @@ services:
     volumes:
       - {{ scrapyd_source_volume }}:/var/lib/scrapyd
     command: scrapyd --pidfile=''
-    env_file: ./docker-compose.env
+    environment:
+      - SERVICE_6800_NAME=_scrapyd._tcp
+    dns_search: {{ stack }}.internal
   scrapyd-deploy:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
     mem_limit: 50000000
-    env_file: ./docker-compose.env
     command: sh -c "./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-deploy aws"
+    dns_search: {{ stack }}.internal
   scrapyd-crawl:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
     volumes:
       - scrapyd:/var/lib/scrapyd
     mem_limit: 50000000
-    env_file: ./docker-compose.env
     command: sh -c "./wait-for-it.sh -t 500 scrapyd:6800 -- cron -f"
+    dns_search: {{ stack }}.internal
   dedupe-on-demand:
     image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest"
     volumes:
       - scrapyd:/var/lib/scrapyd
     mem_limit: 100000000
-    env_file: ./docker-compose.env
     command: sh -c "./wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh"
+    dns_search: {{ stack }}.internal
 
 volumes:
   scrapyd:

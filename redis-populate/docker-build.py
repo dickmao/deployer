@@ -39,16 +39,24 @@ def gen_redis_proto(*cmd):
     return proto
 
 redin = ''.join([gen_redis_proto(*cmd) for cmd in commands])
-with open(join(wdir, ".redin.tmp"), 'w+') as fp:
+with open(join(wdir, "redin.tmp"), 'w+') as fp:
     fp.write("{}".format(redin))
 
 with open(join(wdir, "Dockerfile.tmp"), 'w+') as fp:
     fp.write("""
 FROM redis
 MAINTAINER dick <noreply@shunyet.com>
-COPY ./.redin.tmp ./redin.tmp
-CMD ["/bin/sh", "-c", "cat redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100"]
+RUN set -xe \
+  && apt-get -yq update \
+  && DEBIAN_FRONTEND=noninteractive apt-get -yq install curl netcat-openbsd iputils-ping vim \
+  && curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o /wait-for-it.sh \
+  && chmod u+x /wait-for-it.sh \
+  && apt-get remove -yq curl \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
+COPY ./redin.tmp ./redin.tmp
     """)
 
-subprocess.call(['../ecr-build-and-push.sh', './Dockerfile.tmp', 'redis-populate'])
-os.remove("./.redin.tmp")
+subprocess.call(['../ecr-build-and-push.sh', './Dockerfile.tmp', 'redis-populate:latest'])
+os.remove("./redin.tmp")
+os.remove("./Dockerfile.tmp")

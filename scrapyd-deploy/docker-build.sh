@@ -48,6 +48,9 @@ function schedule {
   fi
   scrapyd-client -t http://scrapyd:6800 schedule -p tutorial \$SPIDER
 }
+
+alias listspiders='curl http://scrapyd:6800/listspiders.json?project=tutorial'
+alias listjobs='curl http://scrapyd:6800/listjobs.json?project=tutorial'
 EOF
 
 cat > ./scrapyd.conf.tmp <<EOF
@@ -94,7 +97,7 @@ FROM ${from_scrapyd_deploy}
 MAINTAINER dick <noreply@shunyet.com>
 RUN set -xe \
   && apt-get -yq update \
-  && DEBIAN_FRONTEND=noninteractive apt-get -yq install gcc python-dev libenchant1c2a cron jq \
+  && DEBIAN_FRONTEND=noninteractive apt-get -yq install gcc python-dev libenchant1c2a cron jq netcat-openbsd \
   && apt-get clean \
   && curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o ./wait-for-it.sh \
   && chmod u+x ./wait-for-it.sh \

@@ -2,8 +2,7 @@
 
 function finish {
     if [ $? != 0 ]; then
-#        aws cloudformation delete-stack --stack-name $STACK
-        rm $STATEDIR/$VERNUM
+        ${wd}/ecs-down.sh $VERNUM
     fi
 }
 function sigH {
@@ -28,7 +27,7 @@ if [ ! -d $STATEDIR ]; then
     mkdir $STATEDIR
 fi
 
-read -r -a states <<< $(cd $STATEDIR ; echo 0000 * | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
+read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
 for s in ${states[@]} ; do
     VERNUM=$(echo $s | sed 's/^0*//')
     VERNUM=$(expr $VERNUM + 1)
@@ -45,10 +44,11 @@ KEYFORNOW=dick
 if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded
 fi
-ecs-cli configure --compose-project-name-prefix="" --compose-service-name-prefix="" --cfn-stack-name-prefix="" -cluster "$STACK"
-ecs-cli up --force --cluster "$STACK" --keypair dick --capability-iam --size 1
-INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")
-VPC=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::VPC") | .PhysicalResourceId ')
-SG=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::SecurityGroup") | .PhysicalResourceId ')
-aws ec2 authorize-security-group-ingress --group-id ${SG} --protocol tcp --port 22 --cidr 0.0.0.0/0
-
+ecs-cli configure --cfn-stack-name="$STACK" --cluster "$STACK" --region "us-east-2"
+IMAGE=$(aws ec2 describe-images --filter="Name=name,Values=amzn-ami-2017.09.a-amazon-ecs-optimized" | jq -r '.Images[0] | .ImageId')
+ecs-cli template --force --cluster "$STACK" --image-id $IMAGE --template "./dns.template" --keypair dick --capability-iam --size 2
+#INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")
+#VPC=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::VPC") | .PhysicalResourceId ')
+#SG=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::SecurityGroup") | .PhysicalResourceId ')
+# aws ec2 authorize-security-group-ingress --group-id ${SG} --protocol tcp --port 22 --cidr 0.0.0.0/0
+# aws route53 create-hosted-zone --name servicediscovery.internal --hosted-zone-config Comment="Hosted Zone for ECS Service Discovery" --vpc VPCId=$VPC,VPCRegion=$(aws configure get region) --caller-reference $(date +%s)
