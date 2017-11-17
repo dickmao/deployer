@@ -9,7 +9,7 @@
     },
     redis: self["base_service"] + {
       image: "redis",
-      mem_limit: 50000000,
+      mem_limit: 150000000,
       ports: [ "6379:6379" ],
       environment: [ "SERVICE_6379_NAME=_redis._tcp" ],
     },
@@ -25,7 +25,7 @@
     },
     scrapyd: self["scrapyd_volume_mounted_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
-      mem_limit: 100000000,
+      mem_limit: 300000000,
       ports: [ "6800:6800" ],
       command: "scrapyd --pidfile=''",
       environment: [ "SERVICE_6800_NAME=_scrapyd._tcp"],
@@ -42,7 +42,7 @@
     },
     "dedupe-on-demand": self["scrapyd_volume_mounted_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
-      mem_limit: 100000000,
+      mem_limit: 300000000,
       command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh'",
     },
   },

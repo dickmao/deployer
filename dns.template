@@ -99,7 +99,12 @@
         "Type": "String",
         "MinLength": "1",
         "Default": "var/lib/scrapyd"
-      }
+      },
+      "spotBidPrice": {
+        "Default": "0.85",
+        "Description": "Spot Instance bid price",
+        "Type": "String"
+      },
     },
     "Mappings" : {
         "VPCLayout" : {
@@ -315,6 +320,7 @@
                 "CidrIp" : "0.0.0.0/0"
             }
         },
+        
         "MountTargetSecurityGroup": {
           "Type": "AWS::EC2::SecurityGroup",
           "Properties": {
@@ -443,6 +449,21 @@
                             ] ] },
                             "owner": "ec2-user",
                             "group": "ec2-user"
+                          },
+                          "/home/ec2-user/.bash_aliases" : {
+                             "content" : { "Fn::Join" : [ "", [
+                               "function docke {\n",
+                               "  docker exec -ti $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") bash\n",
+                               "}\n",
+                               "function dockl {\n",
+                               "  docker logs $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") | less -R\n",
+                               "}\n",
+                               "function dockr {\n",
+                               "  docker rm -f $(docker ps -qla -f \"label=com.amazonaws.ecs.container.name=$1\")\n",
+                               "}\n"
+                             ]]},
+                            "owner": "ec2-user",
+                            "group": "ec2-user"
                           }
                         },
                         "commands" : {
@@ -511,6 +532,7 @@
                     "         --region ", { "Ref" : "AWS::Region" }, "\n",
                     "mkdir -p /", {"Ref": "MountPoint"}, "/", { "Ref" : "ScrapydHostpath"}, "\n",
                     "chown ec2-user:ec2-user /", { "Ref" : "MountPoint" }, "/$(basename $(echo ", { "Ref" : "ScrapydHostpath"}, " | rev) | rev)" , "\n",
+                    "echo source .bash_aliases >> /home/ec2-user/.bashrc\n",
                     "start ecssd_agent\n"
                 ]]}}
             }
