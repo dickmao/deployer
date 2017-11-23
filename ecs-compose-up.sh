@@ -18,7 +18,7 @@ done
 wd=$(dirname $0)
 source ${wd}/ecs-utils.sh
 
-rendered_string=$(python render-docker-compose.py ecs --var cluster=$STACK --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region)))
+rendered_string=$(python render-docker-compose.py ecs --var cluster=$STACK --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region))
 printf "$rendered_string" > $STATEDIR/docker-compose.$STACK.json
 
 eval $(getServiceConfigs)

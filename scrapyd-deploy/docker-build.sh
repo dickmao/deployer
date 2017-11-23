@@ -101,7 +101,7 @@ RUN set -xe \
   && apt-get clean \
   && curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o ./wait-for-it.sh \
   && chmod u+x ./wait-for-it.sh \
-  && pip install pytz python-dateutil redis pyenchant nltk gensim \
+  && pip install pytz python-dateutil redis pyenchant nltk gensim scrapoxy \
   && python -m nltk.downloader punkt \
   && echo "source /root/.bash_aliases" >> /root/.bashrc \
   && rm -rf /var/lib/apt/lists/*

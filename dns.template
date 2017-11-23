@@ -101,10 +101,10 @@
         "Default": "var/lib/scrapyd"
       },
       "spotBidPrice": {
-        "Default": "0.85",
-        "Description": "Spot Instance bid price",
-        "Type": "String"
-      },
+          "Default": 0.85, 
+          "Description": "Spot Instance bid price", 
+          "Type": "String"
+      }
     },
     "Mappings" : {
         "VPCLayout" : {
@@ -168,6 +168,7 @@
             "Properties" : {
                 "VpcId" : { "Ref" : "VPC" },
                 "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet1Config", "CIDR" ]},
+                "MapPublicIpOnLaunch": "true",
                 "AvailabilityZone" : {
                     "Fn::Select" : [
                         "0",
@@ -190,6 +191,7 @@
             "Properties" : {
                 "VpcId" : { "Ref" : "VPC" },
                 "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet2Config", "CIDR" ]},
+                "MapPublicIpOnLaunch": "true",
                 "AvailabilityZone" : {
                     "Fn::Select" : [
                         "1",
@@ -453,10 +455,10 @@
                           "/home/ec2-user/.bash_aliases" : {
                              "content" : { "Fn::Join" : [ "", [
                                "function docke {\n",
-                               "  docker exec -ti $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") bash\n",
+                               "  docker exec -ti $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") sh\n",
                                "}\n",
                                "function dockl {\n",
-                               "  docker logs $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") | less -R\n",
+                               "  docker logs $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") 2>&1 | less -R\n",
                                "}\n",
                                "function dockr {\n",
                                "  docker rm -f $(docker ps -qla -f \"label=com.amazonaws.ecs.container.name=$1\")\n",
@@ -520,6 +522,7 @@
                     "yum install -y aws-cfn-bootstrap\n",
                     "yum update -y aws-cfn-bootstrap\n",
                     "yum install -y bind-utils.x86_64\n",
+                    "yum install -y rsync\n",
                     "/opt/aws/bin/cfn-init -v ",
                     "         --stack ", { "Ref" : "AWS::StackName" },
                     "         --resource LaunchConfig ",

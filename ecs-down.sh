@@ -30,6 +30,7 @@ if [ ! -z ${hosted_zone_id} ]; then
     --id $hosted_zone_id \
     --output text --query 'ChangeInfo.Id'
 fi
+
 if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
     aws cloudformation delete-stack --stack-name $STACK
     inprog=0

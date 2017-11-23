@@ -27,13 +27,14 @@ def get_jsonnet(which):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--var', nargs='*')
+parser.add_argument('--var', action='append')
 parser.add_argument('jsonnet', nargs='?', default='dev')
 args = parser.parse_args()
 ext_vars = {}
 if args.var:
     try:
         ext_vars = { k: v for k,v in (binding.split('=') for binding in args.var) }
+
     except ValueError as e:
         print("ERROR Problem with '{}': {}".format(' '.join(['--var'] + args.var), e.message), file=sys.stderr)
         raise

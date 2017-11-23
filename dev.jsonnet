@@ -2,7 +2,6 @@
   version: "2",
   services: {
     base_service:: {
-      dns_search: std.extVar("cluster") + ".internal",
     },
     scrapyd_volume_mounted_service:: self["base_service"] + {
       volumes: [ "scrapyd:/var/lib/scrapyd" ],
@@ -27,18 +26,18 @@
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
       mem_limit: 300000000,
       ports: [ "6800:6800" ],
-      command: "scrapyd --pidfile=''",
+      command: "sh -c './wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd '",
       environment: [ "SERVICE_6800_NAME=_scrapyd._tcp"],
     },
     "scrapyd-deploy": self["base_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
       mem_limit: 50000000,
-      command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-deploy aws'",
+      command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; scrapyd-deploy aws'",
     },
     "scrapyd-crawl": self["scrapyd_volume_mounted_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
       mem_limit: 50000000,
-      command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- cron -f'",
+      command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; cron -f'",
     },
     "dedupe-on-demand": self["scrapyd_volume_mounted_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",

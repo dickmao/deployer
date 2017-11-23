@@ -43,4 +43,5 @@ if [ ${#only[@]} -eq 0 ] ; then
     for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[] ') ; do
         aws ecs deregister-task-definition --task-definition $olddef
     done
+
 fi
