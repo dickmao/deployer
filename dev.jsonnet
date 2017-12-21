@@ -1,4 +1,4 @@
-local newScrapyd(command, env = []) = {
+local newScrapyd(command, env) = {
   image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
   mem_limit: 300000000,
   ports: [ "6800:6800" ],
@@ -31,7 +31,7 @@ local newScrapyd(command, env = []) = {
       mem_limit: 400000000,
       ports: [ "80:9000" ],
     },
-    scrapyd: self["scrapyd_volume_mounted_service"] + newScrapyd([ "scrapyd" ]),
+    scrapyd: self["scrapyd_volume_mounted_service"] + newScrapyd([ "scrapyd" ], []),
     "scrapyd-deploy": self["base_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
       mem_limit: 50000000,

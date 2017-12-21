@@ -4,12 +4,10 @@ DOCKERFILE=${1:-Dockerfile.tmp}
 DIR=$(basename "$( cd "$( dirname "${DOCKERFILE}" )" && pwd )")
 TAG=${2:-$DIR:latest}
 
-
-
 OLDIMAGE=$(docker images -q $TAG)
 if [ ! -z "$OLDIMAGE" ]; then
     CHILDREN=$(docker images --filter "since=${OLDIMAGE}" --quiet)
-    if [ -z $CHILDREN ] || [ ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ] ; then
+    if [ -z $CHILDREN ] || ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
         docker rmi -f $OLDIMAGE
     fi
 fi
