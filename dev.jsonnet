@@ -43,7 +43,7 @@ local newScrapyd(command, env) = {
       command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; cron -f'",
     },
     "dedupe-on-demand": self["scrapyd_volume_mounted_service"] + {
-      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest",
       mem_limit: 300000000,
       command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh'",
     },

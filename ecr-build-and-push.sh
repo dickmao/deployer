@@ -5,13 +5,14 @@ DIR=$(basename "$( cd "$( dirname "${DOCKERFILE}" )" && pwd )")
 TAG=${2:-$DIR:latest}
 
 OLDIMAGE=$(docker images -q $TAG)
+docker build --file $DOCKERFILE --force-rm -t $TAG .
+# not clear whether this really surgically cleans up danglers
 if [ ! -z "$OLDIMAGE" ]; then
-    CHILDREN=$(docker images --filter "since=${OLDIMAGE}" --quiet)
-    if [ -z $CHILDREN ] || ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
+    CHILDREN=$(docker images --filter "since=${OLDIMAGE}" --filter "before=$TAG" --quiet)
+    if [ ! -z $CHILDREN ] && ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
         docker rmi -f $OLDIMAGE
     fi
 fi
-docker build --file $DOCKERFILE --force-rm -t $TAG .
 eval `aws ecr get-login --no-include-email`
 if ! aws ecr describe-repositories --repository-names ${TAG%:*} 2>/dev/null ; then
     aws ecr create-repository --repository-name  ${TAG%:*}
