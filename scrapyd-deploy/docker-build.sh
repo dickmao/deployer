@@ -87,11 +87,10 @@ cat > ./scrapyd-schedule.tmp <<EOF
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # m h dom mon dow user   command
-#10   *   *   *   * root   bash -lc 'schedule que' '> /proc/1/fd/1 2>/proc/1/fd/2'
+#10   *   *   *   * root   bash -lc 'schedule newyork' '> /proc/1/fd/1 2>/proc/1/fd/2'
 #25   *   *   *   * root   bash -lc 'schedule dmoz' '> /proc/1/fd/1 2>/proc/1/fd/2'
 EOF
 
-from=${scratch:-vimagick/scrapyd}
 cat > ./Dockerfile.tmp <<EOF
 FROM ${from_scrapyd_deploy}
 MAINTAINER dick <noreply@shunyet.com>

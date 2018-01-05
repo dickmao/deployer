@@ -47,6 +47,11 @@ local newScrapyd(command, env) = {
       mem_limit: 300000000,
       command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh'",
     },
+    "corenlp": self["base_service"] + {
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest",
+      ports: [ "9005:9005" ],
+      environment: [ "SERVICE_9005_NAME=_corenlp._tcp" ],
+    },
   },
   volumes: { "scrapyd": null },
 }
