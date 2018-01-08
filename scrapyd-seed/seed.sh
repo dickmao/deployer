@@ -8,7 +8,7 @@ for bf in $(s3cmd ls) ; do
     mkdir -m 0775 -p $dir
     mf=$(s3cmd ls $buck/Marker. | sort | tail -1)
     marker=${mf##* }
-    if [ ! -e $dir/$marker ] ; then
+    if [ ! -e $dir/$(basename marker) ] ; then
         s3cmd get $marker $dir/
     fi
 done
