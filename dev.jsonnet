@@ -1,13 +1,20 @@
+local aws_env = [
+  "AWS_DEFAULT_REGION=" + std.extVar("AWS_DEFAULT_REGION"),
+  "AWS_ACCESS_KEY_ID=" + std.extVar("AWS_ACCESS_KEY_ID"),
+  "AWS_SECRET_ACCESS_KEY=" + std.extVar("AWS_SECRET_ACCESS_KEY")  
+];
+
 local newScrapyd(command, env) = {
   image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
   mem_limit: 300000000,
   ports: [ "6800:6800" ],
   command: command,
-  environment: env
+  environment: aws_env + env
 };
 
 {
   newScrapyd:: newScrapyd,
+  aws_env:: aws_env,
   version: "2",
   services: {
     base_service:: {
@@ -31,7 +38,11 @@ local newScrapyd(command, env) = {
       mem_limit: 400000000,
       ports: [ "80:9000" ],
     },
-    scrapyd: self["scrapyd_volume_mounted_service"] + newScrapyd([ "scrapyd" ], []),
+    "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd([ "scrapyd" ], []),
+    "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-seed:latest",
+      environment: aws_env
+    },
     "scrapyd-deploy": self["base_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapyd-deploy:latest",
       mem_limit: 50000000,
@@ -46,6 +57,7 @@ local newScrapyd(command, env) = {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest",
       mem_limit: 300000000,
       command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh'",
+      environment: aws_env
     },
     "corenlp": self["base_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest",

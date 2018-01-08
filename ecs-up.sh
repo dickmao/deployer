@@ -46,7 +46,7 @@ if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW; then
 fi
 ecs-cli configure --cfn-stack-name="$STACK" --cluster "$STACK" --region "us-east-2"
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
-ecs-cli template --instance-type t2.micro --force --cluster "$STACK" --image-id $IMAGE --template "./dns.template" --keypair dick --capability-iam --size 2
+ecs-cli template --instance-type t2.micro --force --cluster "$STACK" --image-id $IMAGE --template "./dns.template" --keypair dick --capability-iam --size 3
 #INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")
 #VPC=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::VPC") | .PhysicalResourceId ')
 #SG=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::SecurityGroup") | .PhysicalResourceId ')

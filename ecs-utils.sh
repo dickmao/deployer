@@ -22,6 +22,11 @@ fi
 VERNUM=$(printf "%04d" $VERNUM)
 STACK=ecs-$(whoami)-${VERNUM}
 
+function render_string {
+  mode=${1:-dev}
+  python render-docker-compose.py $mode --var cluster=$STACK --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region)
+}
+
 function getServiceConfigs {
   declare -A hofa
   for s0 in $(docker-compose -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do

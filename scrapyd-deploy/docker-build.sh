@@ -96,12 +96,11 @@ FROM ${from_scrapyd_deploy}
 MAINTAINER dick <noreply@shunyet.com>
 RUN set -xe \
   && apt-get -yq update \
-  && DEBIAN_FRONTEND=noninteractive apt-get -yq install gcc python-dev libenchant1c2a cron jq netcat-openbsd \
+  && DEBIAN_FRONTEND=noninteractive apt-get -yq install cron jq netcat-openbsd \
   && apt-get clean \
   && curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o ./wait-for-it.sh \
   && chmod u+x ./wait-for-it.sh \
-  && pip install pytz python-dateutil redis pyenchant nltk gensim scrapoxy scikit-learn \
-  && python -m nltk.downloader punkt \
+  && pip install pytz python-dateutil boto3 \
   && echo "source /root/.bash_aliases" >> /root/.bashrc \
   && rm -rf /var/lib/apt/lists/*
 COPY ./scrapyd-schedule.tmp /etc/cron.d/scrapyd-schedule
