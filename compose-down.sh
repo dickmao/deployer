@@ -41,7 +41,7 @@ for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
     svcname=$(echo "${hofa[$k]}" | sed -e 's/|/-/g')
     drop=${svcname:1}
-    svcgroup=-${drop%%-*}
+    svcgroup=${drop%%-*}
     if [ ${#only[@]} -eq 0 ] || test "${only[$svcgroup]+isset}" ; then
         if test "${extant[$svcname]+isset}"; then
             ecs-cli compose --cluster $STACK -p '' -f ${STATEDIR}/docker-compose.${STACK}.json service down $options
