@@ -22,7 +22,11 @@ done
 
 mode=${mode:-dev}
 wd=$(dirname $0)
-source ${wd}/ecs-utils.sh
+if [ $mode == "dev" ]; then
+  source ${wd}/ecs-utils.sh 0
+else
+  source ${wd}/ecs-utils.sh
+fi
 rendered_string=$(render_string $mode)
 
 if [ $mode == "dev" ]; then
@@ -57,6 +61,6 @@ done
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
     if [ ${#only[@]} -eq 0 ] || test "${only[$k]+isset}"; then
-        ecs-cli compose -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options
+        ecs-cli compose --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options
     fi
 done

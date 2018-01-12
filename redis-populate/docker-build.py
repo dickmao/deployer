@@ -18,7 +18,7 @@ table = ['geonameid','name','asciiname','alternatenames','latitude','longitude',
 
 commands = []
 with open(join(wdir, ".play-app/conf/NY.tsv"), 'r') as fp:
-    for line in fp.readlines():
+    for line in fp:
         arr = line.rstrip('\n').split('\t')
         if arr[6] == "P":
             commands.append(["ZADD", "geoitem.index.name", "0", "{}:{}".format(arr[2].lower(), arr[2])])

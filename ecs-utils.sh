@@ -6,8 +6,8 @@ if [ ! -d $STATEDIR ]; then
     mkdir $STATEDIR
 fi
 
-VERNUM=${1:-0}
-if [ $VERNUM == 0 ]; then
+VERNUM=${1:--1}
+if [ $VERNUM == -1 ]; then
   read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9][0-9][0-9][0-9] 2>/dev/null)
   if [ ${#array[@]} == 1 ]; then
     VERNUM=${array[0]}

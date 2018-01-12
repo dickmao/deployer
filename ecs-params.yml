@@ -5,3 +5,7 @@ task_definition:
       essential: false
     scrapyd-deploy:
       essential: false
+    scrapyd-seed:
+      essential: false
+    corenlp:
+      essential: true
