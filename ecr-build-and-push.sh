@@ -13,6 +13,10 @@ if [ ! -z "$OLDIMAGE" ]; then
         docker rmi -f $OLDIMAGE
     fi
 fi
+
+if [ -z $(aws configure get region) ]; then
+    aws configure set region us-east-2
+fi
 eval `aws ecr get-login --no-include-email`
 if ! aws ecr describe-repositories --repository-names ${TAG%:*} 2>/dev/null ; then
     aws ecr create-repository --repository-name  ${TAG%:*}

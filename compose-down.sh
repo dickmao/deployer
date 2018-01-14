@@ -22,7 +22,12 @@ done
 
 mode=${mode:-dev}
 wd=$(dirname $0)
-source ${wd}/ecs-utils.sh
+if [ $mode == "dev" ]; then
+  source ${wd}/ecs-utils.sh 0
+else
+  source ${wd}/ecs-utils.sh
+fi
+
 if [ $mode == "dev" ]; then
   rendered_string=$(render_string $mode)
   exec bash -c "docker-compose -f - down <<EOF
