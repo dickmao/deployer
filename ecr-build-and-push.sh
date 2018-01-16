@@ -9,7 +9,7 @@ docker build --file $DOCKERFILE --force-rm -t $TAG .
 # not clear whether this really surgically cleans up danglers
 if [ ! -z "$OLDIMAGE" ]; then
     CHILDREN=$(docker images --filter "since=${OLDIMAGE}" --filter "before=$TAG" --quiet)
-    if [ ! -z $CHILDREN ] && ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
+    if [ ! -z "$CHILDREN" ] && ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
         docker rmi -f $OLDIMAGE
     fi
 fi

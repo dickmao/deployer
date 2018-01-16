@@ -24,7 +24,21 @@ STACK=ecs-$(whoami)-${VERNUM}
 
 function render_string {
   mode=${1:-dev}
-  python render-docker-compose.py $mode --var cluster=$STACK --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region)
+  declare -A aa
+  IFS=$'\n'
+  for kv in $(cat <<EOF | git credential fill
+protocol=https
+host=github.com
+EOF
+); do
+      k="${kv%=*}"
+      v="${kv#*=}"
+      aa+=([$k]="$v")
+  done
+  
+  GIT_USER="${aa['username']}"
+  GIT_PASSWORD="${aa['password']}"
+  python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region)
 }
 
 function getServiceConfigs {

@@ -1,4 +1,5 @@
-local devJsonnet = import "dev.jsonnet";
+local repository = "303634175659.dkr.ecr.us-east-2.amazonaws.com/";
+local devJsonnet = import "dev.libsonnet";
 devJsonnet + {
   services+: {
     base_service:: {
@@ -11,7 +12,7 @@ devJsonnet + {
       devJsonnet.newScrapyd(["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], 
          ["SERVICE_6800_NAME=_scrapyd._tcp",]), 
     scrapoxy: self["base_service"] + {
-      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/scrapoxy:latest",
+      image: repository + "scrapoxy:latest",
       mem_limit: 300000000,
       ports: [ "8888:8888", "8889:8889" ],
       environment: devJsonnet.aws_env + [

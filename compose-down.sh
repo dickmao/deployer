@@ -30,6 +30,7 @@ fi
 
 if [ $mode == "dev" ]; then
   rendered_string=$(render_string $mode)
+  echo ${rendered_string}
   exec bash -c "docker-compose -f - down <<EOF
 ${rendered_string}
 EOF"

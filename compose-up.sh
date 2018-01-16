@@ -28,11 +28,10 @@ else
   source ${wd}/ecs-utils.sh
 fi
 rendered_string=$(render_string $mode)
-
 if [ $mode == "dev" ]; then
     if [ ${#only[@]} -ne 0 ] ; then
         for s in "${!only[@]}"; do
-            docker-compose -f - up -d --no-deps --build $s<<EOF
+            docker-compose -f - up -d --no-deps --force-recreate $s<<EOF
 ${rendered_string}
 EOF
         done
