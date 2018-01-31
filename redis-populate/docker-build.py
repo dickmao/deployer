@@ -7,12 +7,26 @@ from itertools import imap
 from git import Repo
 
 wdir = os.path.dirname(realpath(__file__))
+
 try:
-    shutil.rmtree(join(wdir, '.play-app'))
-except OSError as e:
-    if e.errno != errno.ENOENT:
-        raise
-play_app = Repo.clone_from("git@github.com:dickmao/play-app.git", to_path=join(wdir, '.play-app'), **{"depth": 1, "single-branch": True})
+    Repo(join(wdir, '.play-app')).remote().pull()
+except:
+    try:
+        shutil.rmtree(join(wdir, '.play-app'))
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
+    Repo.clone_from("git@github.com:dickmao/play-app.git", to_path=join(wdir, '.play-app'), **{"depth": 1, "single-branch": True})
+
+try:
+    Repo(join(wdir, '.deployer')).remote().pull()
+except:
+    try:
+        shutil.rmtree(join(wdir, '.deployer'))
+    except OSError as e:
+        if e.errno != errno.ENOENT:
+            raise
+    Repo.clone_from("git@github.com:dickmao/deployer.git", to_path=join(wdir, '.deployer'), **{"depth": 1, "single-branch": True})
 
 table = ['geonameid','name','asciiname','alternatenames','latitude','longitude','featureclass','featurecode','countrycode','cc2','admin1code','admin2code','admin3code','admin4code','population','elevation','dem','timezone','modificationdate']
 
@@ -55,8 +69,9 @@ RUN set -xe \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 COPY ./redin.tmp ./redin.tmp
+COPY ./purge-old.sh ./purge-old.sh
     """)
 
-subprocess.call(['../ecr-build-and-push.sh', './Dockerfile.tmp', 'redis-populate:latest'])
-os.remove("./redin.tmp")
-os.remove("./Dockerfile.tmp")
+subprocess.call([join(wdir, '.deployer/ecr-build-and-push.sh'), join(wdir, 'Dockerfile.tmp'), 'redis-populate:latest'], cwd=wdir)
+os.remove(join(wdir, "./redin.tmp"))
+os.remove(join(wdir, "./Dockerfile.tmp"))

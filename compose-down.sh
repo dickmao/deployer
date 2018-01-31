@@ -5,7 +5,8 @@ while [[ $# -gt 0 ]] ; do
   key="$1"
   case "$key" in
       -s|--service-prefix)
-      only+=([$2]=1)
+      svc=${2%%-*}
+      only+=([$svc]=1)
       shift
       shift
       ;;
@@ -30,10 +31,19 @@ fi
 
 if [ $mode == "dev" ]; then
   rendered_string=$(render_string $mode)
-  echo ${rendered_string}
-  exec bash -c "docker-compose -f - down <<EOF
+  if [ ${#only[@]} -ne 0 ] ; then
+      for s in "${!only[@]}"; do
+          # I have issues with volume mounts with --force-recreate (scrapyd-seed)
+          docker-compose -f - rm --stop --force $s<<EOF
+${rendered_string}
+EOF
+      done
+  else
+      exec bash -c "docker-compose -f - down <<EOF
 ${rendered_string}
 EOF"
+  fi
+  exit 0
 fi
 
 eval $(getServiceConfigs)

@@ -1,4 +1,3 @@
-local repository = "";
 local aws_env = [
   "AWS_DEFAULT_REGION=" + std.extVar("AWS_DEFAULT_REGION"),
   "AWS_ACCESS_KEY_ID=" + std.extVar("AWS_ACCESS_KEY_ID"),
@@ -7,7 +6,7 @@ local aws_env = [
   "GIT_PASSWORD=" + std.extVar("GIT_PASSWORD")  
 ];
 
-local newScrapyd(command, env) = {
+local newScrapyd(repository, command, env) = {
   image: repository + "scrapyd-deploy:latest",
   mem_limit: "300m",
   ports: [ "6800:6800" ],
@@ -15,8 +14,14 @@ local newScrapyd(command, env) = {
   environment: aws_env + env
 };
 
-{
-  newScrapyd:: newScrapyd,
+local newRedis(repository, env) = {
+  image: "redis",
+  mem_limit: "300m",
+  ports: [ "6379:6379" ],
+  environment: env
+};
+
+local composeUp(repository) = {
   aws_env:: aws_env,
   version: "2",
   services: {
@@ -25,12 +30,10 @@ local newScrapyd(command, env) = {
     scrapyd_volume_mounted_service:: self["base_service"] + {
       volumes: [ "scrapyd:/var/lib/scrapyd" ],
     },
-    redis: self["base_service"] + {
-      image: repository + "redis",
-      mem_limit: "150m",
-      ports: [ "6379:6379" ],
-      environment: [ "SERVICE_6379_NAME=_redis._tcp" ],
+    redis_volume_mounted_service:: self["base_service"] + {
+      volumes: [ "redis:/data" ],
     },
+    redis: self["redis_volume_mounted_service"] + newRedis(repository, []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "50m",
@@ -39,15 +42,18 @@ local newScrapyd(command, env) = {
     "redis-depopulate": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "50m",
-      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
+      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
     "play-app": self["base_service"] + {
-      image: repository + "play-app:0.1-SNAPSHOT",
+      # cannot figure out how to do an unprefixed image with sbt native packager
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
       mem_limit: "512m",
       ports: [ "80:9000" ],
+      environment: [ "REDIS_HOST=redis" ],
     },
-    "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd([ "scrapyd" ], []),
+    "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
+      mem_limit: "100m",
       image: repository + "scrapyd-seed:latest",
       environment: aws_env
     },
@@ -68,11 +74,19 @@ local newScrapyd(command, env) = {
       environment: aws_env
     },
     "corenlp": self["base_service"] + {
-      image: repository + "corenlp:latest",
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest",
       mem_reservation: "512m",
       ports: [ "9005:9005" ],
       environment: [ "SERVICE_9005_NAME=_corenlp._tcp" ],
     },
   },
-  volumes: { "scrapyd": null },
+  volumes: { "scrapyd": null,
+             "redis": null },
+};
+
+{
+  aws_env:: aws_env,
+  newScrapyd:: newScrapyd,
+  newRedis:: newRedis,
+  composeUp:: composeUp,
 }

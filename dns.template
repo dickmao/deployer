@@ -100,6 +100,12 @@
         "MinLength": "1",
         "Default": "var/lib/scrapyd"
       },
+      "RedisHostpath" : {
+        "Description" : "Efs path to bind mount in docker containers",
+        "Type": "String",
+        "MinLength": "1",
+        "Default": "var/lib/redis"
+      },
       "spotBidPrice": {
           "Default": 0.85, 
           "Description": "Spot Instance bid price", 
@@ -173,7 +179,7 @@
                     "Fn::Select" : [
                         "0",
                         {
-                            "Fn::GetAZs" : ""
+                            "Fn::GetAZs" : {"Ref": "AWS::Region"}
                         }
                     ]
                 },
@@ -196,7 +202,7 @@
                     "Fn::Select" : [
                         "1",
                         {
-                            "Fn::GetAZs" : ""
+                            "Fn::GetAZs" : {"Ref": "AWS::Region"}
                         }
                     ]
                 },
@@ -459,16 +465,14 @@
                                "}\n",
                                "function dockl {\n",
                                "  tail=''\n",
-                               "  pager='| less -R'\n",
                                "  if [ $1 == '-f' ]; then\n",
                                "    shift\n",
-                               "    tail='-f '\n",
-                               "    pager=''\n",
+                               "    tail=' -f'\n",
                                "  fi\n",
-                               "  docker logs$tail $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") 2>&1 $pager\n",
+                               "  docker logs$tail $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") 2>&1 \n",
                                "}\n",
                                "function dockr {\n",
-                               "  docker rm -f $(docker ps -qla -f \"label=com.amazonaws.ecs.container.name=$1\")\n",
+                               "  docker stop $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") | xargs docker rm -f\n",
                                "}\n"
                              ]]},
                             "owner": "ec2-user",
@@ -543,6 +547,8 @@
                     "         --region ", { "Ref" : "AWS::Region" }, "\n",
                     "mkdir -p /", {"Ref": "MountPoint"}, "/", { "Ref" : "ScrapydHostpath"}, "\n",
                     "chown ec2-user:ec2-user /", { "Ref" : "MountPoint" }, "/$(basename $(echo ", { "Ref" : "ScrapydHostpath"}, " | rev) | rev)" , "\n",
+                    "mkdir -p /", {"Ref": "MountPoint"}, "/", { "Ref" : "RedisHostpath"}, "\n",
+                    "chown ec2-user:ec2-user /", { "Ref" : "MountPoint" }, "/$(basename $(echo ", { "Ref" : "RedisHostpath"}, " | rev) | rev)" , "\n",
                     "echo source .bash_aliases >> /home/ec2-user/.bashrc\n",
                     "start ecssd_agent\n"
                 ]]}}
