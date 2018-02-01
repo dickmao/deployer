@@ -4,7 +4,7 @@ source $(dirname $0)/ecs-utils.sh
 
 TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
 if [ "$TASKDEF" != "null" ]; then
-    aws ecs deregister-task-definition --task-definition $TASKDEF
+  aws ecs deregister-task-definition --task-definition $TASKDEF
 fi
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/

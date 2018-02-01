@@ -1,9 +1,13 @@
 #!/bin/bash -eu
 
+if [ -z "$(aws configure get region)" ]; then
+  aws configure set region ${AWS_REGION}
+fi
+
 wd=$(dirname $0)
 STATEDIR="${wd}/ecs-state"
 if [ ! -d $STATEDIR ]; then
-    mkdir $STATEDIR
+  mkdir $STATEDIR
 fi
 
 VERNUM=${1:--1}
@@ -24,20 +28,22 @@ STACK=ecs-$(whoami)-${VERNUM}
 
 function render_string {
   mode=${1:-dev}
-  declare -A aa
-  IFS=$'\n'
-  for kv in $(cat <<EOF | git credential fill
+  if [ -z "$GIT_USER" ] || [ -z "$GIT_PASSWORD" ]; then
+    declare -A aa
+    IFS=$'\n'
+    for kv in $(cat <<EOF | git credential fill
 protocol=https
 host=github.com
 EOF
-); do
+    ); do
       k="${kv%=*}"
       v="${kv#*=}"
       aa+=([$k]="$v")
-  done
+    done
   
-  GIT_USER="${aa['username']}"
-  GIT_PASSWORD="${aa['password']}"
+    GIT_USER="${aa['username']}"
+    GIT_PASSWORD="${aa['password']}"
+  fi
   python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region)
 }
 
