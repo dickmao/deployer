@@ -35,7 +35,7 @@ jobs:
       - persist_to_workspace:
           root: ecs-state
           paths:
-            - "*circleci*"
+            - "*"
 
   ecs-down:
     docker:
