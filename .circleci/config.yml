@@ -1,6 +1,27 @@
 version: 2
 jobs:
-  build:
+  build-deployer-image:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:patient0
+        user:
+          root # circleci cannot seem to get /var/run/docker.sock
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+
+      - setup_remote_docker:
+          docker_layer_caching: false
+
+      - run: |
+          set -ex
+          eval `aws ecr get-login --no-include-email --region $AWS_REGION`
+          docker build -t circleci:deployer .circleci/images
+          docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+          docker push 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+
+  ecs-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
         aws_auth:
@@ -8,13 +29,30 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
-
-      # ... steps for building/testing app ...
-
-      - setup_remote_docker:   # (2)
-          docker_layer_caching: false # (3)
-
-      # build and push Docker image
       - run: |
+          set -ex
           ./ecs-up.sh
+
+  ecs-down:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - run: |
+          set -ex
           ./ecs-down.sh
+
+workflows:
+  version: 2
+  gamut:
+    jobs:
+      - build-deployer-image
+      - ecs-up:
+          requires:
+            - build-deployer-image
+      - ecs-down:
+          requires:
+            - ecs-up

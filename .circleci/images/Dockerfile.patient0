@@ -1,0 +1,8 @@
+FROM circleci/python:2.7.14
+MAINTAINER dick <noreply@shunyet.com>
+RUN set -xe \
+  && sudo apt-get -yq update \
+  && DEBIAN_FRONTEND=noninteractive sudo apt-get -yq install vim \
+  && sudo apt-get clean \
+  && sudo rm -rf /var/lib/apt/lists/* \
+  && sudo pip install awscli
