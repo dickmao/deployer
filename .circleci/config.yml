@@ -29,13 +29,13 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - run: |
+          set -ex
+          ./ecs-up.sh
       - persist_to_workspace:
           root: ecs-state
           paths:
             - "*circleci*"
-      - run: |
-          set -ex
-          ./ecs-up.sh
 
   ecs-down:
     docker:
