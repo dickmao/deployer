@@ -10,21 +10,27 @@ if [ ! -d $STATEDIR ]; then
   mkdir $STATEDIR
 fi
 
-VERNUM=${1:--1}
-if [ $VERNUM == -1 ]; then
-  read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9][0-9][0-9][0-9] 2>/dev/null)
-  if [ ${#array[@]} == 1 ]; then
-    VERNUM=${array[0]}
-  elif [ ${#array[@]} -gt 1 ] ; then
-    echo Which one? ${array[@]}
-    exit -1
-  else
-    echo No outstanding clusters found
-    exit -1
+if [ ! -z $CIRCLE_BUILD_NUM ]; then
+  VERNUM=$CIRCLE_BUILD_NUM
+  USER="circleci"
+else  
+  USER=$(whoami)
+  VERNUM=${1:--1}
+  if [ $VERNUM == -1 ]; then
+    read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9][0-9][0-9][0-9] 2>/dev/null)
+    if [ ${#array[@]} == 1 ]; then
+      VERNUM=${array[0]}
+    elif [ ${#array[@]} -gt 1 ] ; then
+      echo Which one? ${array[@]}
+      exit -1
+    else
+      echo No outstanding clusters found
+      exit -1
+    fi
   fi
 fi
 VERNUM=$(printf "%04d" $VERNUM)
-STACK=ecs-$(whoami)-${VERNUM}
+STACK=ecs-${USER}-${VERNUM}
 
 function render_string {
   mode=${1:-dev}

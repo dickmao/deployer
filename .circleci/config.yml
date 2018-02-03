@@ -45,11 +45,15 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - attach_workspace:
+          at: ecs-state
       - run: |
           set -ex
           ./ecs-compose-up.sh
-      - attach_workspace:
-          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
 
   ecs-compose-down:
     docker:
@@ -59,11 +63,15 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - attach_workspace:
+          at: ecs-state
       - run: |
           set -ex
           ./ecs-compose-down.sh
-      - attach_workspace:
-          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
 
   ecs-down:
     docker:
@@ -78,6 +86,10 @@ jobs:
       - run: |
           set -ex
           ./ecs-down.sh
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
 
 workflows:
   version: 2

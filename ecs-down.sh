@@ -43,8 +43,10 @@ fi
 if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
     aws ecs delete-cluster --cluster $STACK
 fi
-if [ ! -e $STATEDIR/$VERNUM ]; then
-    echo WARN No record of $VERNUM in $STATEDIR
-else
-    rm $STATEDIR/$VERNUM
+if [ -z $CIRCLE_BUILD_NUM ]; then
+  if [ ! -e $STATEDIR/$VERNUM ]; then
+      echo WARN No record of $VERNUM in $STATEDIR
+  else
+      rm $STATEDIR/$VERNUM
+  fi
 fi
