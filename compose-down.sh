@@ -53,6 +53,8 @@ for service in $(aws ecs list-services --cluster $STACK | jq -r '.serviceArns | 
     extant+=([-$(basename $service)]=1)
 done
 
+ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
+ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
     svcname=$(echo "${hofa[$k]}" | sed -e 's/|/-/g')
@@ -60,7 +62,7 @@ for k in "${!hofa[@]}" ; do
     svcgroup=${drop%%-*}
     if [ ${#only[@]} -eq 0 ] || test "${only[$svcgroup]+isset}" ; then
         if test "${extant[$svcname]+isset}"; then
-            ecs-cli compose --cluster $STACK -p '' -f ${STATEDIR}/docker-compose.${STACK}.json service down $options
+            $ECSCLIBIN compose --cluster $STACK -p '' -f ${STATEDIR}/docker-compose.${STACK}.json service down $options
         fi
     fi
 done
