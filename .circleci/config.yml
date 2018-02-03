@@ -27,8 +27,16 @@ jobs:
         aws_auth:
           aws_access_key_id: $AWS_ACCESS_KEY_ID
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    persist_to_workspace:
+      root: ecs-state
+      paths:
+        - "*circleci*"
     steps:
       - checkout
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*circleci*"
       - run: |
           set -ex
           ./ecs-up.sh
@@ -41,6 +49,8 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - attach_workspace:
+          at: ecs-state
       - run: |
           set -ex
           ./ecs-down.sh
