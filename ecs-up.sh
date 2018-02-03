@@ -25,23 +25,22 @@ containsElement () {
 
 wd=$(dirname $0)
 source ${wd}/ecs-utils.sh 0
-read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
-for s in ${states[@]} ; do
-    VERNUM=$(echo $s | sed 's/^0*//')
-    VERNUM=$(expr $VERNUM + 1)
-    VERNUM=$(printf "%04d" $VERNUM)
-    if ! containsElement $VERNUM ${states[@]} ; then
-        break
-    fi
-done
 if [ ! -z $CIRCLE_BUILD_NUM ]; then
-  VERNUM=$CIRCLE_BUILD_NUM
-  USER="circleci"
+  set_circleci_user_vernum
 else
+  read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
+  for s in ${states[@]} ; do
+      VERNUM=$(echo $s | sed 's/^0*//')
+      VERNUM=$(expr $VERNUM + 1)
+      VERNUM=$(printf "%04d" $VERNUM)
+      if ! containsElement $VERNUM ${states[@]} ; then
+          break
+      fi
+  done
   VERNUM=${VERNUM:-0001}
   USER=$(whoami)
+  VERNUM=$(printf "%04d" $VERNUM)
 fi
-VERNUM=$(printf "%04d" $VERNUM)
 touch $STATEDIR/$VERNUM
 
 STACK=ecs-${USER}-${VERNUM}

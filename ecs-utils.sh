@@ -4,6 +4,24 @@ if [ -z "$(aws configure get region)" ]; then
   aws configure set region ${AWS_REGION}
 fi
 
+function set_circleci_user_vernum {
+  # Lionel: how-to-check-if-a-variable-is-set-in-bash
+  if [ -f ${wd}/circleci.api ]; then
+    CIRCLE_TOKEN=$(cat ${wd}/circleci.api)
+  fi
+  if [ -z $CIRCLE_TOKEN ] ; then
+    echo Need CIRCLE_TOKEN api token enviroment variable
+    exit -1
+  fi
+  if [ -z $CIRCLE_BUILD_NUM ] ; then
+    echo Need CIRCLE_BUILD_NUM enviroment variable
+    exit -1
+  fi
+  VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id" | tail -c 5)
+  VERNUM="0041"
+  USER="circleci"
+}
+
 wd=$(dirname $0)
 STATEDIR="${wd}/ecs-state"
 if [ ! -d $STATEDIR ]; then
@@ -11,8 +29,7 @@ if [ ! -d $STATEDIR ]; then
 fi
 
 if [ ! -z $CIRCLE_BUILD_NUM ]; then
-  VERNUM=$CIRCLE_BUILD_NUM
-  USER="circleci"
+  set_circleci_user_vernum
 else  
   USER=$(whoami)
   VERNUM=${1:--1}
@@ -28,8 +45,8 @@ else
       exit -1
     fi
   fi
+  VERNUM=$(printf "%04d" $VERNUM)
 fi
-VERNUM=$(printf "%04d" $VERNUM)
 STACK=ecs-${USER}-${VERNUM}
 
 function render_string {
