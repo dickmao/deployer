@@ -34,10 +34,16 @@ for s in ${states[@]} ; do
         break
     fi
 done
-VERNUM=${VERNUM:-0001}
+if [ ! -z $CIRCLE_BUILD_NUM ]; then
+  VERNUM=$CIRCLE_BUILD_NUM
+  USER="circleci"
+else
+  VERNUM=${VERNUM:-0001}
+  USER=$(whoami)
+fi
 touch $STATEDIR/$VERNUM
 
-STACK=ecs-$(whoami)-${VERNUM}
+STACK=ecs-${USER}-${VERNUM}
 KEYFORNOW=dick
 if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded
