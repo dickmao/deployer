@@ -2,7 +2,6 @@
 
 source $(dirname $0)/ecs-utils.sh
 
-# STACK=ecs-circleci-0041
 if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
   TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
   if [ "$TASKDEF" != "null" ]; then
