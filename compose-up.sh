@@ -62,9 +62,11 @@ eval $(getServiceConfigs)
 #     fi
 #done
 
+ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
+ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
     if [ ${#only[@]} -eq 0 ] || test "${only[$k]+isset}"; then
-        ecs-cli compose --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options --deployment-max-percent 100 --deployment-min-healthy-percent 0 --timeout 5
+        $ECSCLIBIN compose --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options --deployment-max-percent 100 --deployment-min-healthy-percent 0 --timeout 5
     fi
 done
