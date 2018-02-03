@@ -2,11 +2,13 @@
 
 source $(dirname $0)/ecs-utils.sh
 
-TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
-if [ "$TASKDEF" != "null" ]; then
-  aws ecs deregister-task-definition --task-definition $TASKDEF
+# STACK=ecs-circleci-0041
+if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
+  TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
+  if [ "$TASKDEF" != "null" ]; then
+    aws ecs deregister-task-definition --task-definition $TASKDEF
+  fi
 fi
-
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(
   aws route53 list-hosted-zones \
