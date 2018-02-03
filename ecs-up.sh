@@ -41,6 +41,7 @@ else
   VERNUM=${VERNUM:-0001}
   USER=$(whoami)
 fi
+VERNUM=$(printf "%04d" $VERNUM)
 touch $STATEDIR/$VERNUM
 
 STACK=ecs-${USER}-${VERNUM}
