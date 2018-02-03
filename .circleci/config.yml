@@ -37,6 +37,34 @@ jobs:
           paths:
             - "*"
 
+  ecs-compose-up:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - run: |
+          set -ex
+          ./ecs-compose-up.sh
+      - attach_workspace:
+          at: ecs-state
+
+  ecs-compose-down:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - run: |
+          set -ex
+          ./ecs-compose-down.sh
+      - attach_workspace:
+          at: ecs-state
+
   ecs-down:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -59,6 +87,12 @@ workflows:
       - ecs-up:
           requires:
             - build-deployer-image
-      - ecs-down:
+      - ecs-compose-up:
           requires:
             - ecs-up
+      - ecs-compose-down:
+          requires:
+            - ecs-compose-up
+      - ecs-down:
+          requires:
+            - ecs-compose-down
