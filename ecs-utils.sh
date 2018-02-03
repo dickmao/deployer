@@ -18,7 +18,6 @@ function set_circleci_user_vernum {
     exit -1
   fi
   VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id" | tail -c 5)
-  VERNUM="0041"
   USER="circleci"
 }
 
