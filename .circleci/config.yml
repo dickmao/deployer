@@ -35,7 +35,8 @@ jobs:
           (cd /go/src/github.com/aws/amazon-ecs-cli ; go get ./... && make)
       - save_cache:
           key: ecscli-{{ checksum "/go/src/github.com/aws/amazon-ecs-cli/.git/index" }}
-          path: /go/src/github.com/aws/amazon-ecs-cli
+          paths: 
+            - /go/src/github.com/aws/amazon-ecs-cli
 
   ecs-up:
     docker:

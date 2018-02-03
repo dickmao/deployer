@@ -5,4 +5,4 @@ RUN set -xe \
   && DEBIAN_FRONTEND=noninteractive sudo apt-get -yq install jq gawk netcat-openbsd rsync python-pip vim \
   && sudo apt-get clean \
   && sudo rm -rf /var/lib/apt/lists/* \
-  && sudo pip install awscli jinja2 rua.yaml jsonnet
+  && sudo pip install awscli jinja2 ruamel.yaml jsonnet
