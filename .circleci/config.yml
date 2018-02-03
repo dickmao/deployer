@@ -21,6 +21,22 @@ jobs:
           docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
           docker push 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
 
+  build-ecscli:
+    docker:
+      - image: circleci/golang:1.9.2
+    steps:
+      - run: |
+          set -ex
+          # Thanks @bobziuchkovski
+          git config --global url."https://${GIT_PASSWORD}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          mkdir -p /go/src/github.com/aws
+          (cd /go/src/github.com/aws ; git clone -b my-branch https://github.com/dickmao/amazon-ecs-cli.git)
+          # shlomi noach, code.openark.org
+          (cd /go/src/github.com/aws/amazon-ecs-cli ; go get ./... && make)
+      - save_cache:
+          key: ecscli-{{ checksum "/go/src/github.com/aws/amazon-ecs-cli/.git/index" }}
+          path: /go/src/github.com/aws/amazon-ecs-cli
+
   ecs-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -29,6 +45,8 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - restore_cache:
+          keys: ecscli
       - run: |
           set -ex
           ./ecs-up.sh
@@ -45,6 +63,8 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - restore_cache:
+          keys: ecscli
       - attach_workspace:
           at: ecs-state
       - run: |
@@ -96,9 +116,11 @@ workflows:
   gamut:
     jobs:
       - build-deployer-image
+      - build-ecscli
       - ecs-up:
           requires:
             - build-deployer-image
+            - build-ecscli
       - ecs-compose-up:
           requires:
             - ecs-up

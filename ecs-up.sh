@@ -43,14 +43,7 @@ if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded
 fi
 
-# Thanks @bobziuchkovski
-git config --global url."https://${GIT_PASSWORD}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
-# shlomi noach, code.openark.org
-mkdir -p $(dirname $ECSCLIPATH)
-(cd $(dirname $ECSCLIPATH) ; git clone -b my-branch https://github.com/dickmao/amazon-ecs-cli.git)
-(cd $ECSCLIPATH ; go get ./... && make)
-
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK"
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
