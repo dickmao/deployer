@@ -25,7 +25,7 @@ containsElement () {
 
 wd=$(dirname $0)
 source ${wd}/ecs-utils.sh 0
-if [ ! -z $CIRCLE_BUILD_NUM ]; then
+if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
   set_circleci_user_vernum
 else
   read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
@@ -51,7 +51,7 @@ fi
 
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
-$ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK"
+$ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $(aws configure get region)
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template "${wd}/dns.template" --keypair dick --capability-iam --size 2
 #INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")

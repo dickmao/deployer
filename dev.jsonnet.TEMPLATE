@@ -100,5 +100,6 @@ local composeUp(repository) = {
   aws_env:: aws_env,
   newScrapyd:: newScrapyd,
   newRedis:: newRedis,
+  newMongo:: newMongo,
   composeUp:: composeUp,
 }
