@@ -21,6 +21,13 @@ local newRedis(repository, env) = {
   environment: env
 };
 
+local newMongo(repository, env) = {
+  image: "mongo:3.6.2-jessie",
+  mem_limit: "500m",
+  ports: [ "27017:27017" ],
+  environment: env
+};
+
 local composeUp(repository) = {
   aws_env:: aws_env,
   version: "2",
@@ -33,7 +40,11 @@ local composeUp(repository) = {
     redis_volume_mounted_service:: self["base_service"] + {
       volumes: [ "redis:/data" ],
     },
+    mongo_volume_mounted_service:: self["base_service"] + {
+      volumes: [ "mongo:/var/lib/mongodb" ],
+    },
     redis: self["redis_volume_mounted_service"] + newRedis(repository, []),
+    mongo: self["mongo_volume_mounted_service"] + newMongo(repository, []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "50m",
@@ -49,7 +60,7 @@ local composeUp(repository) = {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
       mem_limit: "512m",
       ports: [ "80:9000" ],
-      environment: [ "REDIS_HOST=redis" ],
+      environment: [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ],
     },
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
@@ -81,7 +92,8 @@ local composeUp(repository) = {
     },
   },
   volumes: { "scrapyd": null,
-             "redis": null },
+             "redis": null,
+             "mongo": null },
 };
 
 {

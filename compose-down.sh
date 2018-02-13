@@ -5,7 +5,7 @@ while [[ $# -gt 0 ]] ; do
   key="$1"
   case "$key" in
       -s|--service-prefix)
-      svc=${2%%-*}
+      svc=$2
       only+=([$svc]=1)
       shift
       shift

@@ -11,7 +11,11 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     redis_volume_mounted_service: self["base_service"] + {
       volumes: [ "/efs/var/lib/redis:/data" ],
     },
+    mongo_volume_mounted_service: self["base_service"] + {
+      volumes: [ "/efs/var/lib/mongodb:/var/lib/mongodb" ],
+    },
     redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
+    mongo: self["mongo_volume_mounted_service"] + devJsonnetTemplate.newMongo(repository, [ "SERVICE_27017_NAME=_mongo._tcp" ]),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
       devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], 
          ["SERVICE_6800_NAME=_scrapyd._tcp",]),

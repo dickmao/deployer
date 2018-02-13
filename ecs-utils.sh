@@ -9,12 +9,12 @@ function set_circleci_user_vernum {
   if [ -f ${wd}/circleci.api ]; then
     CIRCLE_TOKEN=$(cat ${wd}/circleci.api)
   fi
-  if [ -z $CIRCLE_TOKEN ] ; then
+  if [ -z ${CIRCLE_TOKEN:-} ] ; then
     echo Need CIRCLE_TOKEN api token enviroment variable
     exit -1
   fi
-  if [ -z $CIRCLE_BUILD_NUM ] ; then
-    echo Need CIRCLE_BUILD_NUM enviroment variable
+  if [ -z ${CIRCLE_BUILD_NUM:-} ] ; then
+    echo Need CIRCLE_BUILD_NUM environment variable
     exit -1
   fi
   VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id" | tail -c 5)
@@ -27,7 +27,7 @@ if [ ! -d $STATEDIR ]; then
   mkdir $STATEDIR
 fi
 
-if [ ! -z $CIRCLE_BUILD_NUM ]; then
+if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
   set_circleci_user_vernum
 else  
   USER=$(whoami)
@@ -50,7 +50,7 @@ STACK=ecs-${USER}-${VERNUM}
 
 function render_string {
   mode=${1:-dev}
-  if [ -z "$GIT_USER" ] || [ -z "$GIT_PASSWORD" ]; then
+  if [ -z "${GIT_USER:-}" ] || [ -z "${GIT_PASSWORD-}" ]; then
     declare -A aa
     IFS=$'\n'
     for kv in $(cat <<EOF | git credential fill

@@ -5,7 +5,7 @@ while [[ $# -gt 0 ]] ; do
   key="$1"
   case "$key" in
       -s|--service-prefix)
-      svc=${2%%-*}
+      svc=$2
       only+=([$svc]=1)
       shift
       shift
@@ -42,7 +42,7 @@ EOF
         done
         exit 0
     else
-        exec bash -c "docker-compose -f - up<<EOF
+        exec bash -c "docker-compose -f - up -d <<EOF
 ${rendered_string}
 EOF"
     fi
