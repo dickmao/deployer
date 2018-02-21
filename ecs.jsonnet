@@ -21,7 +21,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
          ["SERVICE_6800_NAME=_scrapyd._tcp",]),
     scrapoxy: self["base_service"] + {
       image: repository + "scrapoxy:latest",
-      mem_limit: 300000000,
+      mem_limit: "300m",
       ports: [ "8888:8888", "8889:8889" ],
       environment: devJsonnetTemplate.aws_env + [
         "SERVICE_8888_NAME=_scrapoxy._tcp",

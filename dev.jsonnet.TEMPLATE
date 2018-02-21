@@ -62,6 +62,11 @@ local composeUp(repository) = {
       ports: [ "80:9000" ],
       environment: [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ],
     },
+    "play-email": self["base_service"] + {
+      # cannot figure out how to do an unprefixed image with sbt native packager
+      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT",
+      environment: [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ],
+    },
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
       mem_limit: "100m",
