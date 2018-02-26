@@ -66,7 +66,29 @@ ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
+
+    # currently only handle single port (other possibilities include ranges 9001-9005)
+    elb=""
+    PORTS=$(cat $STATEDIR/docker-compose.$STACK.json | jq -r ".services | .$k | select(has(\"ports\")) | .ports[]")
+    if [[ $PORTS =~ ^[[:digit:]]+$ ]]; then
+        # query target group arn for listener on that port
+        targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Port=='$PORTS') | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
+        if [ -z $targetarn ]; then
+          echo ERROR Problem finding targetarn
+          exit -1
+        fi
+
+        # targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Tags[] | select(.Key=="LoadBalancerPort" and .Value=="'$PORTS'") | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
+
+        # targetarn=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-0001|jq -r '.StackResources[] | select(.ResourceType=="AWS::ElasticLoadBalancingV2::TargetGroup") | .PhysicalResourceId')
+        # service specifies desired count of tasks which are composed of container-names
+        ECSROLE=$(aws iam list-roles | jq -r '.Roles[] | select(.RoleName | contains("ECSRole")) | .RoleName')
+        elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
+    fi
     if [ ${#only[@]} -eq 0 ] || test "${only[$k]+isset}"; then
-        $ECSCLIBIN compose --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$options --deployment-max-percent 100 --deployment-min-healthy-percent 0 --timeout 5
+        $ECSCLIBIN compose --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 5
     fi
 done
+#for arn in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | .LoadBalancerArn') ; do 
+#    port=$(aws elbv2   describe-listeners --load-balancer-arn $arn | jq -r '.Listeners[] | .Port')
+#    if [ $port == $PORTS ] ; then 

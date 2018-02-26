@@ -2,7 +2,7 @@
 
 function finish {
   if [ $? != 0 ]; then
-    if [ ! -z $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[]') ] ; then
+    if [ ! -z "$(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[]')" ] ; then
       ${wd}/ecs-down.sh $VERNUM
     fi
   fi
@@ -53,9 +53,29 @@ ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $(aws configure get region)
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
-$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template "${wd}/dns.template" --keypair dick --capability-iam --size 2
+$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template "${wd}/dns.template" --keypair dick --capability-iam --size 2 --target-group "${STACK}-tg"
+
 #INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")
 #VPC=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::VPC") | .PhysicalResourceId ')
 #SG=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::SecurityGroup") | .PhysicalResourceId ')
 # aws ec2 authorize-security-group-ingress --group-id ${SG} --protocol tcp --port 22 --cidr 0.0.0.0/0
 # aws route53 create-hosted-zone --name servicediscovery.internal --hosted-zone-config Comment="Hosted Zone for ECS Service Discovery" --vpc VPCId=$VPC,VPCRegion=$REGION --caller-reference $(date +%s)
+
+#mydir=$(mktemp -d "${TMPDIR:-/tmp/}$(basename $0).XXXXXXXXXXXX")
+#zip ${mydir}/ecs-register-service-dns-lambda.zip ${wd}/ecs-register-service-dns-lambda.py
+
+#ZONEID=$(aws route53 list-hosted-zones | jq -r '.HostedZones[] | select(.Name=="$STACK.internal." ) | .Id')
+#ROLEARN=$(aws iam list-roles | jq -r '.Roles[] | select(.RoleName | contains("LambdaServiceRole")) | .Arn')
+
+# FUNCTIONARN=$(aws lambda create-function \
+#     --region $(aws configure get region) \
+#     --function-name registerEcsServiceDns \
+#     --zip-file fileb://${mydir}/ecs-register-service-dns-lambda.zip \
+#     --role $ROLEARN \
+#     --environment Variables="{ZONEID=$ZONEID,CLUSTER=$STACK}" \
+#     --handler ecs-register-service-dns-lambda.lambda_handler \
+#     --runtime python2.7 \
+#     --profile default | jq -r '.FunctionArn')
+# aws events put-rule --name registerEcsServiceDnsRule --description registerEcsServiceDnsRule --event-pattern file://${wd}/cwe-ecs-rule.json
+# aws events put-targets --rule registerEcsServiceDnsRule --targets "Id"="Target1","Arn"=$FUNCTIONARN
+

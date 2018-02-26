@@ -17,8 +17,9 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
     mongo: self["mongo_volume_mounted_service"] + devJsonnetTemplate.newMongo(repository, [ "SERVICE_27017_NAME=_mongo._tcp" ]),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
-      devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], 
-         ["SERVICE_6800_NAME=_scrapyd._tcp",]),
+      devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], []) + {
+        ports: [ "6800" ],
+      },
     scrapoxy: self["base_service"] + {
       image: repository + "scrapoxy:latest",
       mem_limit: "300m",

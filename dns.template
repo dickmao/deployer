@@ -2,6 +2,11 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Description" : "ECS Environment with Service Discovery",
     "Parameters": {
+      "DefaultTargetGroupName": {
+        "Type": "String",
+        "Description": "ELBv2 default target group",
+        "Default": ""
+      },
       "EcsAmiId": {
         "Type": "String",
         "Description": "ECS EC2 AMI id",
@@ -120,6 +125,77 @@
         }
     },
     "Resources" : {
+        "LoadBalancer": {
+          "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+          "Properties": {
+            "Scheme": "internal",
+            "Subnets": [{
+              "Ref": "PublicSubnet1"
+            }, {
+              "Ref": "PublicSubnet2"
+            }],
+            "SecurityGroups": [{
+              "Ref": "LoadBalancerSecurityGroup"
+            }]
+          }
+        },
+        "LoadBalancerListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener", 
+            "Properties": {
+                "LoadBalancerArn": {
+                    "Ref": "LoadBalancer"
+                }, 
+                "Port": 6800, 
+                "Protocol": "HTTP", 
+                "DefaultActions": [
+                    {
+                        "Type": "forward", 
+                        "TargetGroupArn": {
+                            "Ref": "DefaultTargetGroup"
+                        }
+                    }
+                ]
+            }
+        }, 
+
+        "DefaultTargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
+            "Properties": {
+                "Name": { 
+                    "Ref": "DefaultTargetGroupName"
+                },
+                "VpcId": {
+                    "Ref": "VPC"
+                }, 
+                "Port": 6800, 
+                "Protocol": "HTTP",
+                "Tags" : [
+                    {
+                        "Key" : "LoadBalancerPort",
+                        "Value" : "6800"
+                    }
+                ]
+            }
+        },
+
+
+        "LoadBalancerSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "LoadBalancer Security Group",
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "SecurityGroupIngress": [{
+                "IpProtocol": "tcp",
+                "FromPort": 6800,
+                "ToPort": 6800,
+                "SourceSecurityGroupId": {
+                  "Ref": "EcsInstanceSecurityGroup"
+                }
+            }]
+          }
+        },
         "VPC" : {
             "Type" : "AWS::EC2::VPC",
             "Properties" : {
@@ -328,7 +404,6 @@
                 "CidrIp" : "0.0.0.0/0"
             }
         },
-        
         "MountTargetSecurityGroup": {
           "Type": "AWS::EC2::SecurityGroup",
           "Properties": {
@@ -530,7 +605,7 @@
                 "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
                     "#!/bin/bash -xe\n",
                     "echo ECS_CLUSTER=", {"Ref": "EcsCluster"}, " >> /etc/ecs/ecs.config\n",
-                    "echo ECS_CONTAINER_STOP_TIMEOUT=10m", " >> /etc/ecs/ecs.config\n",
+                    "echo ECS_CONTAINER_STOP_TIMEOUT=30s", " >> /etc/ecs/ecs.config\n",
                     "yum install -y aws-cfn-bootstrap\n",
                     "yum update -y aws-cfn-bootstrap\n",
                     "yum install -y bind-utils.x86_64\n",
@@ -575,6 +650,9 @@
                 ],
 
                 "LaunchConfigurationName": { "Ref": "LaunchConfig" },
+                "TargetGroupARNs": [
+                    { "Ref": "DefaultTargetGroup" }
+                ],
                 "MinSize": {"Ref": "AsgMaxSize"},
                 "MaxSize": {"Ref": "AsgMaxSize"},
                 "DesiredCapacity": {"Ref": "AsgMaxSize"},
@@ -632,6 +710,269 @@
                     "Ref": "InstanceRole"
                 } ]
             }
+        },
+        "LambdaServiceRole": {
+          "Type": "AWS::IAM::Role",
+          "DependsOn": "HostedZone",
+          "Properties": {
+            "AssumeRolePolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [{
+                "Effect": "Allow",
+                "Principal": {
+                  "Service": [
+                    "lambda.amazonaws.com"
+                  ]
+                },
+                "Action": [
+                  "sts:AssumeRole"
+                ]
+              }]
+            },
+            "Path": "/",
+            "Policies": [{
+              "PolicyName": "CloudWatchEventsLambdaRoute53",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                }, {
+                  "Effect": "Allow",
+                  "Action": [
+                    "route53:ChangeResourceRecordSets"
+                  ],
+                  "Resource": {
+                    "Fn::Join": ["", ["arn:aws:route53:::hostedzone/", {
+                      "Ref": "HostedZone"
+                    }]]
+                  }
+                }, {
+                  "Effect": "Allow",
+                  "Action": [
+                    "elasticloadbalancing:Describe*"
+                  ],
+                  "Resource": "*"
+                }]
+              }
+            }]
+          }
+        },
+        "RegisterEcsServiceDns": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Handler": "index.lambda_handler",
+            "Role": { "Fn::GetAtt" : ["LambdaServiceRole", "Arn"] },
+            "Code": {
+              "ZipFile" : { "Fn::Join" : ["\n", [
+                "from __future__ import print_function",
+                "import json",
+                "import boto3",
+                "import os",
+                "",
+                "def lambda_handler(event, context):",
+                "",  
+                "    # spit out event data",
+                "    print(\"Received event: \" + json.dumps(event, indent=2))    ",
+                "",
+                "    zoneid = os.environ.get(\"ZONEID\")",
+                "    if not zoneid:",
+                "        print(\"ZONEID not set. No action taken.\")",
+                "        return 0",
+                "",
+                "    cluster = os.environ.get(\"CLUSTER\")",
+                "    if not cluster:",
+                "        print(\"CLUSTER not set. No action taken.\")",
+                "        return 0",
+                "",
+                "    # private hosted zone domain name and id",
+                "    privatezone = cluster + \".internal\"",
+                "",
+                "    # check we are working against the appropriate ecs cluster",
+                "    if cluster != event['detail']['requestParameters']['cluster']:",
+                "        print(\"This event does not apply to us. No action taken.\")",
+                "        return 0",
+                "",
+                "    # grab DNS name for load balancer",
+                "    elbclient = boto3.client('elbv2')",
+                "    lbinfo = event['detail']['responseElements']['service']['loadBalancers'][0]",
+                "    describetg = elbclient.describe_target_groups(TargetGroupArns=[lbinfo['targetGroupArn']])",
+                "    lbarn = describetg['TargetGroups'][0]['LoadBalancerArns'][0]",
+                "    describelb = elbclient.describe_load_balancers(",
+                "        LoadBalancerArns=[",
+                "            lbarn",
+                "        ]",
+                "    )",
+                "    lbcanonical = describelb['LoadBalancers'][0]['DNSName']",
+                "    service = event['detail']['responseElements']['service']['serviceName'].split(\"-\")[0]",
+                "    servicerecord = service + \".\" + privatezone + \".\"",
+                "",
+                "    # grab type of event",
+                "    eventname = event['detail']['eventName']",
+                "",
+                "    # boto connect to route53",
+                "    route53client = boto3.client('route53')",
+                "",
+                "    # create/update record",
+                "    if eventname == 'CreateService':",
+                "        response = route53client.change_resource_record_sets(",
+                "            HostedZoneId=zoneid,",
+                "            ChangeBatch={",
+                "                'Comment' : 'ECS service registered',",
+                "                'Changes' : [",
+                "                    {",
+                "                        'Action' : 'UPSERT',",
+                "                        'ResourceRecordSet' : {",
+                "                            'Name' : servicerecord,",
+                "                            'Type' : 'CNAME',",
+                "                            'TTL' : 60,",
+                "                            'ResourceRecords' : [",
+                "                                {",
+                "                                    'Value' : lbcanonical",
+                "                                }",
+                "                            ]",
+                "                        }",
+                "                    }",
+                "                ] ",
+                "            }",
+                "        )",
+                "",
+                "        print(response)",
+                "",
+                "    # delete record",
+                "    elif eventname == 'DeleteService':",
+                "        response = route53client.change_resource_record_sets(",
+                "            HostedZoneId=zoneid,",
+                "            ChangeBatch={",
+                "                'Comment' : 'ECS service deregistered',",
+                "                'Changes' : [",
+                "                    {",
+                "                        'Action' : 'DELETE',",
+                "                        'ResourceRecordSet' : {",
+                "                            'Name' : servicerecord,",
+                "                            'Type' : 'CNAME',",
+                "                            'TTL' : 60,",
+                "                            'ResourceRecords' : [",
+                "                                {",
+                "                                    'Value' : lbcanonical",
+                "                                }",
+                "                            ]",
+                "                        }",
+                "                    }",
+                "                ] ",
+                "            }",
+                "        )",
+                "        print(response)",
+                "        return response",
+                "",
+                "    else:",
+                "        print(\"This event does not apply to us. No action taken.\")",
+                "        return 0"
+                
+               ]]}
+            },
+            "Environment": {
+              "Variables": {
+                "ZONEID": { "Ref": "HostedZone" },
+                "CLUSTER": { "Ref": "EcsCluster" }
+              }
+            },
+            "Runtime": "python2.7",
+            "Timeout": "25"
+          }
+        },
+        "RegisterEcsServiceDnsRule": {
+          "Type": "AWS::Events::Rule",
+          "Properties": {
+            "Description": "RegisterEcsServiceDnsRule",
+            "EventPattern": {
+              "detail-type": [
+                "AWS API Call via CloudTrail"
+              ],
+              "detail": {
+                "eventSource": [
+                  "ecs.amazonaws.com"
+                ],
+                "eventName": [
+                  "CreateService",
+                  "DeleteService"
+                ]
+              }
+            },
+            "State": "ENABLED",
+            "Targets": [{
+              "Arn": { "Fn::GetAtt": ["RegisterEcsServiceDns", "Arn"] },
+              "Id": "TargetFunctionV1"
+            }]
+          }
+        },
+        "LambdaInvokePermission": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "RegisterEcsServiceDns",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "events.amazonaws.com",
+            "SourceArn": {
+              "Fn::GetAtt": [
+                "RegisterEcsServiceDnsRule",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "S3Bucket": {
+          "DeletionPolicy" : "Retain",
+          "Type": "AWS::S3::Bucket",
+          "Properties": {
+          }
+        },
+        "BucketPolicy" : {
+          "Type" : "AWS::S3::BucketPolicy",
+          "Properties" : {
+            "Bucket" : {"Ref" : "S3Bucket"},
+            "PolicyDocument" : {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "AWSCloudTrailAclCheck",
+                  "Effect": "Allow",
+                  "Principal": { "Service":"cloudtrail.amazonaws.com"},
+                  "Action": "s3:GetBucketAcl",
+                  "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}]]}
+                },
+                {
+                  "Sid": "AWSCloudTrailWrite",
+                  "Effect": "Allow",
+                  "Principal": { "Service":"cloudtrail.amazonaws.com"},
+                  "Action": "s3:PutObject",
+                  "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"]]},
+                  "Condition": {
+                    "StringEquals": {
+                      "s3:x-amz-acl": "bucket-owner-full-control"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "CloudTrail" : {
+          "DependsOn" : ["BucketPolicy"],
+          "Type" : "AWS::CloudTrail::Trail",
+          "Properties" : {
+            "S3BucketName" : {"Ref":"S3Bucket"},
+            "IsLogging" : true
+          }
         }
     }
 }
