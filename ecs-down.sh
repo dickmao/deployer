@@ -8,6 +8,11 @@ if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
     aws ecs deregister-task-definition --task-definition $TASKDEF
   fi
 fi
+
+for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK |jq -r '.StackResources | map(select(.ResourceType=="AWS::S3::Bucket")) | .[] | .PhysicalResourceId '); do
+  aws s3 rm s3://$bucket/ --recursive
+done
+
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(
   aws route53 list-hosted-zones \

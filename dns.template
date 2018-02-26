@@ -134,6 +134,13 @@
             }, {
               "Ref": "PublicSubnet2"
             }],
+            "LoadBalancerAttributes": [{
+              "Key": "access_logs.s3.enabled",
+              "Value": "true"
+            }, {
+              "Key": "access_logs.s3.bucket",
+              "Value": {"Ref":"S3Bucket"},
+            }],
             "SecurityGroups": [{
               "Ref": "LoadBalancerSecurityGroup"
             }]
@@ -167,8 +174,8 @@
                 "VpcId": {
                     "Ref": "VPC"
                 }, 
-                "Port": 6800, 
                 "Protocol": "HTTP",
+                "Port": 6800,
                 "Tags" : [
                     {
                         "Key" : "LoadBalancerPort",
@@ -798,6 +805,10 @@
                 "        print(\"This event does not apply to us. No action taken.\")",
                 "        return 0",
                 "",
+                "    if not event['detail']['responseElements']['service']['loadBalancers']:",
+                "        print(\"This event has no loadbalancers. No action taken.\")",
+                "        return 0",
+                "",
                 "    # grab DNS name for load balancer",
                 "    elbclient = boto3.client('elbv2')",
                 "    lbinfo = event['detail']['responseElements']['service']['loadBalancers'][0]",
@@ -931,7 +942,7 @@
           }
         },
         "S3Bucket": {
-          "DeletionPolicy" : "Retain",
+          "DeletionPolicy" : "Delete",
           "Type": "AWS::S3::Bucket",
           "Properties": {
           }
@@ -954,6 +965,18 @@
                   "Sid": "AWSCloudTrailWrite",
                   "Effect": "Allow",
                   "Principal": { "Service":"cloudtrail.amazonaws.com"},
+                  "Action": "s3:PutObject",
+                  "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"]]},
+                  "Condition": {
+                    "StringEquals": {
+                      "s3:x-amz-acl": "bucket-owner-full-control"
+                    }
+                  }
+                },
+                {
+                  "Sid": "AWSCloudTrailWrite",
+                  "Effect": "Allow",
+                  "Principal": { "AWS": {"Ref":"AWS::AccountId"} },
                   "Action": "s3:PutObject",
                   "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"]]},
                   "Condition": {
