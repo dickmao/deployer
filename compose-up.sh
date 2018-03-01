@@ -10,6 +10,10 @@ while [[ $# -gt 0 ]] ; do
       shift
       shift
       ;;
+      -d|--debug)
+      debug=" --debug"
+      shift
+      ;;
       -m|--mode)
       mode=$2
       shift
@@ -21,6 +25,7 @@ while [[ $# -gt 0 ]] ; do
   esac
 done
 
+debug=${debug:-}
 mode=${mode:-dev}
 wd=$(dirname $0)
 if [ $mode == "dev" ]; then
@@ -64,7 +69,11 @@ eval $(getServiceConfigs)
 
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
-for k in "${!hofa[@]}" ; do
+order_matters=("${!hofa[@]}")
+IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
+unset IFS
+# order should not matter but RegisterEcsServiceDns not getting CreateService from scrapyd going first
+for k in "${order_matters[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
 
     # currently only handle single port (other possibilities include ranges 9001-9005)
@@ -86,7 +95,7 @@ for k in "${!hofa[@]}" ; do
         elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
     fi
     if [ ${#only[@]} -eq 0 ] || test "${only[$k]+isset}"; then
-        $ECSCLIBIN compose --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 5
+        $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 5
     fi
 done
 #for arn in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | .LoadBalancerArn') ; do 

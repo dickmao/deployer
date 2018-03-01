@@ -86,7 +86,7 @@ local composeUp(repository) = {
     "dedupe-on-demand": self["scrapyd_volume_mounted_service"] + {
       image: repository + "dedupe:latest",
       mem_reservation: "512m",
-      command: "sh -c './wait-for-it.sh -t 500 scrapyd:6800 -- ./dedupe-on-demand.sh'",
+      command: "sh -c './wait-for-it.sh -t 500 corenlp:9005 -- ./wait-for-it.sh -t 500 redis:6379 -- ./dedupe-on-demand.sh '",
       environment: aws_env
     },
     "corenlp": self["base_service"] + {

@@ -53,7 +53,7 @@ ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $(aws configure get region)
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
-$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template "${wd}/dns.template" --keypair dick --capability-iam --size 2 --target-group "${STACK}-tg"
+$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template "${wd}/dns.template" --keypair dick --capability-iam --size 2
 
 #INFO=$(aws cloudformation describe-stack-resources --stack-name "$STACK")
 #VPC=$(echo $INFO | jq -r ' .StackResources | .[] | select(.ResourceType=="AWS::EC2::VPC") | .PhysicalResourceId ')
@@ -79,3 +79,12 @@ $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image
 # aws events put-rule --name registerEcsServiceDnsRule --description registerEcsServiceDnsRule --event-pattern file://${wd}/cwe-ecs-rule.json
 # aws events put-targets --rule registerEcsServiceDnsRule --targets "Id"="Target1","Arn"=$FUNCTIONARN
 
+tgarns=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups | map(select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn) | .[]')
+if [ -z $tgarns ]; then
+    echo ERROR Problem finding targetarns
+    exit -1
+fi
+for tgarn in $tgarns; do
+    toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
+    aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
+done

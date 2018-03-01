@@ -10,7 +10,7 @@ if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
 fi
 
 for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK |jq -r '.StackResources | map(select(.ResourceType=="AWS::S3::Bucket")) | .[] | .PhysicalResourceId '); do
-  aws s3 rm s3://$bucket/ --recursive
+  aws s3 rm s3://$bucket/ --recursive || true
 done
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
@@ -50,9 +50,12 @@ if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .cluste
     aws ecs delete-cluster --cluster $STACK
 fi
 if [ -z ${CIRCLE_BUILD_NUM:-} ]; then
-  if [ ! -e $STATEDIR/$VERNUM ]; then
-      echo WARN No record of $VERNUM in $STATEDIR
-  else
-      rm $STATEDIR/$VERNUM
-  fi
+    if [ ! -e $STATEDIR/$VERNUM ]; then
+        echo WARN No record of $VERNUM in $STATEDIR
+    else
+        rm $STATEDIR/$VERNUM
+    fi
 fi
+for lg in $(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/$STACK" | jq -r '.logGroups[] | .logGroupName '); do
+    aws logs delete-log-group --log-group-name $lg
+done

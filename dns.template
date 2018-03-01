@@ -2,11 +2,6 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Description" : "ECS Environment with Service Discovery",
     "Parameters": {
-      "DefaultTargetGroupName": {
-        "Type": "String",
-        "Description": "ELBv2 default target group",
-        "Default": ""
-      },
       "EcsAmiId": {
         "Type": "String",
         "Description": "ECS EC2 AMI id",
@@ -122,6 +117,20 @@
             "VPC" : { "CIDR" : "10.5.0.0/16" },
             "PublicSubnet1Config" : { "CIDR" : "10.5.10.0/24" },
             "PublicSubnet2Config" : { "CIDR" : "10.5.15.0/24" }
+        },
+        "RegionalConfigs": {
+          "us-east-1": {
+            "ELBAccountId": "127311923021"
+          },
+          "us-west-1": {
+            "ELBAccountId": "027434742980"
+          },
+          "us-west-2": {
+            "ELBAccountId": "797873946194"
+          },
+          "us-east-2": {
+            "ELBAccountId": "033677994240"
+          }
         }
     },
     "Resources" : {
@@ -139,7 +148,7 @@
               "Value": "true"
             }, {
               "Key": "access_logs.s3.bucket",
-              "Value": {"Ref":"S3Bucket"},
+              "Value": {"Ref":"S3Bucket"}
             }],
             "SecurityGroups": [{
               "Ref": "LoadBalancerSecurityGroup"
@@ -152,7 +161,7 @@
                 "LoadBalancerArn": {
                     "Ref": "LoadBalancer"
                 }, 
-                "Port": 6800, 
+                "Port": 6800,
                 "Protocol": "HTTP", 
                 "DefaultActions": [
                     {
@@ -169,19 +178,18 @@
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
             "Properties": {
                 "Name": { 
-                    "Ref": "DefaultTargetGroupName"
+                    "Fn::Join": [ "-", [ { "Ref": "EcsCluster" }, "tg" ] ]
                 },
                 "VpcId": {
                     "Ref": "VPC"
                 }, 
                 "Protocol": "HTTP",
                 "Port": 6800,
-                "Tags" : [
-                    {
-                        "Key" : "LoadBalancerPort",
-                        "Value" : "6800"
-                    }
-                ]
+                "TargetGroupAttributes": [{
+                    "Key": "deregistration_delay.timeout_seconds",
+                    "Value": "30"
+                }],
+                "Targets": []
             }
         },
 
@@ -378,9 +386,20 @@
                 ]
             }
         },
+
+        "EcsInstanceSecurityGroupLoadBalancer" : {
+            "Type" : "AWS::EC2::SecurityGroupIngress",
+            "Properties" : {
+                "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
+                "IpProtocol" : "tcp",
+                "FromPort" : 0,
+                "ToPort" : 65535,
+                "SourceSecurityGroupId" : { "Ref" : "LoadBalancerSecurityGroup" }
+            }
+        },
+
         "EcsInstanceSecurityGroupApps" : {
             "Type" : "AWS::EC2::SecurityGroupIngress",
-            "DependsOn" : "EcsInstanceSecurityGroup",
             "Properties" : {
                 "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
                 "IpProtocol" : "tcp",
@@ -391,7 +410,6 @@
         },
         "EcsInstanceSecurityGroupAppsSSH" : {
             "Type" : "AWS::EC2::SecurityGroupIngress",
-            "DependsOn" : "EcsInstanceSecurityGroup",
             "Properties" : {
                 "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
                 "IpProtocol" : "tcp",
@@ -402,7 +420,6 @@
         },
         "EcsInstanceSecurityGroupAppsWeb" : {
             "Type" : "AWS::EC2::SecurityGroupIngress",
-            "DependsOn" : "EcsInstanceSecurityGroup",
             "Properties" : {
                 "GroupId" : { "Ref" : "EcsInstanceSecurityGroup" },
                 "IpProtocol" : "tcp",
@@ -612,7 +629,8 @@
                 "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
                     "#!/bin/bash -xe\n",
                     "echo ECS_CLUSTER=", {"Ref": "EcsCluster"}, " >> /etc/ecs/ecs.config\n",
-                    "echo ECS_CONTAINER_STOP_TIMEOUT=30s", " >> /etc/ecs/ecs.config\n",
+                    "# scrapoxy delete security group needs at least 60s\n",
+                    "echo ECS_CONTAINER_STOP_TIMEOUT=100s", " >> /etc/ecs/ecs.config\n",
                     "yum install -y aws-cfn-bootstrap\n",
                     "yum update -y aws-cfn-bootstrap\n",
                     "yum install -y bind-utils.x86_64\n",
@@ -790,12 +808,12 @@
                 "    zoneid = os.environ.get(\"ZONEID\")",
                 "    if not zoneid:",
                 "        print(\"ZONEID not set. No action taken.\")",
-                "        return 0",
+                "        return",
                 "",
                 "    cluster = os.environ.get(\"CLUSTER\")",
                 "    if not cluster:",
                 "        print(\"CLUSTER not set. No action taken.\")",
-                "        return 0",
+                "        return",
                 "",
                 "    # private hosted zone domain name and id",
                 "    privatezone = cluster + \".internal\"",
@@ -803,11 +821,11 @@
                 "    # check we are working against the appropriate ecs cluster",
                 "    if cluster != event['detail']['requestParameters']['cluster']:",
                 "        print(\"This event does not apply to us. No action taken.\")",
-                "        return 0",
+                "        return",
                 "",
                 "    if not event['detail']['responseElements']['service']['loadBalancers']:",
                 "        print(\"This event has no loadbalancers. No action taken.\")",
-                "        return 0",
+                "        return",
                 "",
                 "    # grab DNS name for load balancer",
                 "    elbclient = boto3.client('elbv2')",
@@ -879,11 +897,9 @@
                 "            }",
                 "        )",
                 "        print(response)",
-                "        return response",
                 "",
                 "    else:",
-                "        print(\"This event does not apply to us. No action taken.\")",
-                "        return 0"
+                "        print(\"This event does not apply to us. No action taken.\")"
                 
                ]]}
             },
@@ -947,6 +963,8 @@
           "Properties": {
           }
         },
+
+
         "BucketPolicy" : {
           "Type" : "AWS::S3::BucketPolicy",
           "Properties" : {
@@ -974,16 +992,17 @@
                   }
                 },
                 {
-                  "Sid": "AWSCloudTrailWrite",
+                  "Sid": "AWSElasticLoadBalancerWrite",
                   "Effect": "Allow",
-                  "Principal": { "AWS": {"Ref":"AWS::AccountId"} },
+                  "Principal": { 
+                    "AWS": {
+                       "Fn::FindInMap": [
+                         "RegionalConfigs", { Ref: "AWS::Region" }, "ELBAccountId"
+                       ]
+                    }
+                  },
                   "Action": "s3:PutObject",
                   "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"]]},
-                  "Condition": {
-                    "StringEquals": {
-                      "s3:x-amz-acl": "bucket-owner-full-control"
-                    }
-                  }
                 }
               ]
             }
