@@ -148,6 +148,10 @@
             "Type": "String",
             "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
             "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with a hyphen (-)."
+        },
+        "HostedZoneName": {
+            "Type": "String",
+            "Description": "Service discovery subdomain e.g., ecs-dick-0002.internal"
         }
     },
     "Conditions": {
@@ -246,6 +250,10 @@
                         "Value": {
                             "Ref": "ReplicaShardIndex"
                         }
+                    },
+                    {
+                        "Key": "scheduler:ebs-snapshot",
+                        "Value": "default"
                     }
                 ],
                 "BlockDeviceMappings": [
@@ -350,6 +358,12 @@
                                 "scripts/signalFinalStatus.sh signalFinalStatus.sh\n",
                                 "chmod +x signalFinalStatus.sh \n",
                                 "chmod +x init.sh \n",
+
+                                "echo search ",
+                                {
+                                    "Ref": "HostedZoneName"
+                                },
+                                " >> /etc/resolv.conf\n",
                                 "#  Run the install \n",
                                 "#  Store stack name to tag DDB name\n",
                                 "echo ",
@@ -481,6 +495,15 @@
                 ]
             },
             "Description": "Private IP Address of Node Instance"
+        },
+        "NodePrivateDns": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ReplicaNodeInstance",
+                    "PrivateDnsName"
+                ]
+            },
+            "Description": "Private DNS of Node Instance"
         },
         "NodeInstanceID" : {
             "Description": "The Instance ID",

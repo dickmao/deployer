@@ -12,7 +12,9 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       volumes: [ "/efs/var/lib/redis:/data" ],
     },
     redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
-    mongo: self["mongo_volume_mounted_service"] + devJsonnetTemplate.newMongo(repository, [ "SERVICE_27017_NAME=_mongo._tcp" ]),
+    mongo:: self["mongo_volume_mounted_service"],
+    "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, [ "REDIS_HOST=redis", "MONGO_HOST=db0,db1,db2" ]),
+    "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, [ "REDIS_HOST=redis", "MONGO_HOST=db0,db1,db2" ]),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
       devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], []) + {
         ports: [ "6800" ],
@@ -32,4 +34,5 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       command: [ "./doit.sh" ],
     },
   },
+  volumes:: {}
 }

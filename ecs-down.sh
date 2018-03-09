@@ -2,16 +2,30 @@
 
 source $(dirname $0)/ecs-utils.sh
 
-if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
-  TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
-  if [ "$TASKDEF" != "null" ]; then
-    aws ecs deregister-task-definition --task-definition $TASKDEF
+function clean_state {
+  if [ -z ${CIRCLE_BUILD_NUM:-} ]; then
+      if [ ! -e $STATEDIR/$VERNUM ]; then
+          echo WARN No record of $VERNUM in $STATEDIR
+      else
+          rm $STATEDIR/$VERNUM
+      fi
   fi
+}
+
+if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
+  echo Stack $STACK not found
+  clean_state
+  exit 0
 fi
 
+TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
+if [ "$TASKDEF" != "null" ]; then
+  aws ecs deregister-task-definition --task-definition $TASKDEF
+fi
 for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK |jq -r '.StackResources | map(select(.ResourceType=="AWS::S3::Bucket")) | .[] | .PhysicalResourceId '); do
   aws s3 rm s3://$bucket/ --recursive || true
 done
+
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(
@@ -49,13 +63,7 @@ fi
 if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
     aws ecs delete-cluster --cluster $STACK
 fi
-if [ -z ${CIRCLE_BUILD_NUM:-} ]; then
-    if [ ! -e $STATEDIR/$VERNUM ]; then
-        echo WARN No record of $VERNUM in $STATEDIR
-    else
-        rm $STATEDIR/$VERNUM
-    fi
-fi
+clean_state
 for lg in $(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/$STACK" | jq -r '.logGroups[] | .logGroupName '); do
     aws logs delete-log-group --log-group-name $lg
 done

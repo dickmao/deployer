@@ -28,6 +28,20 @@ local newMongo(repository, env) = {
   environment: env
 };
 
+local newPlayApp(repository, env) = {
+  # cannot figure out how to do an unprefixed image with sbt native packager
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
+  mem_limit: "512m",
+  ports: [ "80:9000" ],
+  environment: env,
+};
+
+local newPlayEmail(repository, env) = {
+  # cannot figure out how to do an unprefixed image with sbt native packager
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT",
+  environment: env,
+};
+
 local composeUp(repository) = {
   aws_env:: aws_env,
   version: "2",
@@ -55,18 +69,8 @@ local composeUp(repository) = {
       mem_limit: "50m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
-    "play-app": self["base_service"] + {
-      # cannot figure out how to do an unprefixed image with sbt native packager
-      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
-      mem_limit: "512m",
-      ports: [ "80:9000" ],
-      environment: [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ],
-    },
-    "play-email": self["base_service"] + {
-      # cannot figure out how to do an unprefixed image with sbt native packager
-      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT",
-      environment: [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ],
-    },
+    "play-app": self["base_service"] + newPlayApp(repository, [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ]),
+    "play-email": self["base_service"] + newPlayEmail(repository, [ "REDIS_HOST=redis", "MONGO_HOST=mongo" ]),
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
       mem_limit: "100m",
@@ -107,4 +111,6 @@ local composeUp(repository) = {
   newRedis:: newRedis,
   newMongo:: newMongo,
   composeUp:: composeUp,
+  newPlayEmail:: newPlayEmail,
+  newPlayApp:: newPlayApp,
 }

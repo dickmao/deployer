@@ -25,7 +25,6 @@ def get_jsonnet(which):
             if filename == which or '.'.join(filename.split('.')[0:-1]) == which:
                 return filename
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--var', action='append')
 parser.add_argument('jsonnet', nargs='?', default='dev')

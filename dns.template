@@ -2,6 +2,13 @@
     "AWSTemplateFormatVersion" : "2010-09-09",
     "Description" : "ECS Environment with Service Discovery",
     "Parameters": {
+        "RemoteAccessCIDR": {
+            "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/([0-9]|[1-2][0-9]|3[0-2]))$",
+            "Type": "String",
+            "ConstraintDescription": "CIDR block parameter must be in the form x.x.x.x/x",
+            "Description": "Allowed CIDR block for external SSH access to the bastions",
+            "Default": "0.0.0.0/0"
+        },
         "PublicSubnet1CIDR": {
             "AllowedPattern": "^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\\/(1[6-9]|2[0-8]))$",
             "Default": "10.0.128.0/20",
@@ -54,12 +61,12 @@
         "AvailabilityZones": {
             "Type": "List<AWS::EC2::AvailabilityZone::Name>",
             "Description": "List of Availability Zones to use for the subnets in the VPC. Note: The logical order is preserved. 1 or 2 AZs are used for this deployment.",
-            "Default": "us-east-2c"
+            "Default": "us-east-2b,us-east-2c"
         },
         "NumberOfAZs": {
             "AllowedValues": [ "1", "2" ],
             "Type": "String",
-            "Default": "1"
+            "Default": "2"
         },
         "ClusterReplicaSetCount": {
             "Description": "Number of Replica Set Members. Choose 1 or 3",
@@ -94,6 +101,7 @@
             "ConstraintDescription": "Input your MongoDB database password, Min 8, Maximum of 32 characters. . Allowed characters are: [A-Za-z0-9_@-]",
             "Description": "Enter your MongoDB Database Password, Min 8, maximum of 32 characters.",
             "NoEcho": "true",
+            "Default": "password",
             "Type": "String"
         },
         "ReplicaShardIndex": {
@@ -132,51 +140,7 @@
             "t2.large",
             "m3.medium",
             "m3.large",
-            "m3.xlarge",
-            "m3.2xlarge",
-            "m4.large",
-            "m4.xlarge",
-            "m4.2xlarge",
-            "m4.4xlarge",
-            "m4.10xlarge",
-            "c4.large",
-            "c4.xlarge",
-            "c4.2xlarge",
-            "c4.4xlarge",
-            "c4.8xlarge",
-            "c3.large",
-            "c3.xlarge",
-            "c3.2xlarge",
-            "c3.4xlarge",
-            "c3.8xlarge",
-            "p2.xlarge",
-            "p2.8xlarge",
-            "p2.16xlarge",
-            "g2.2xlarge",
-            "g2.16xlarge",
-            "x1.16xlarge",
-            "x1.32xlarge",
-            "r3.large",
-            "r3.xlarge",
-            "r3.2xlarge",
-            "r3.4xlarge",
-            "r3.8xlarge",
-            "r4.large",
-            "r4.xlarge",
-            "r4.2xlarge",
-            "r4.4xlarge",
-            "r4.8xlarge",
-            "r4.16xlarge",
-            "i2.xlarge",
-            "i2.2xlarge",
-            "i2.4xlarge",
-            "i2.8xlarge",
-            "g2.2xlarge",
-            "g2.8xlarge",
-            "d2.xlarge",
-            "d2.2xlarge",
-            "d2.4xlarge",
-            "d2.8xlarge"
+            "m4.large"
           ],
           "ConstraintDescription": "must be a valid EC2 instance type."
         },
@@ -241,6 +205,14 @@
     },
 
     "Conditions": {
+        "RepeatSubnet": {
+            "Fn::Equals": [
+                {
+                    "Ref": "NumberOfAZs"
+                },
+                "2"
+            ]
+        },
         "CreateThreeReplicaSet": {
             "Fn::Equals": [
                 {
@@ -252,58 +224,6 @@
     },
 
     "Mappings" : {
-        "AWSAMIRegionMap": {
-            "AMI": {
-                "AMZNLINUX": "amzn-ami-hvm-2017.09.1.20180115-x86_64-gp2"
-            },
-            "ap-northeast-1": {
-                "AMZNLINUX": "ami-ceafcba8"
-            },
-            "ap-northeast-2": {
-                "AMZNLINUX": "ami-863090e8"
-            },
-            "ap-south-1": {
-                "AMZNLINUX": "ami-531a4c3c"
-            },
-            "ap-southeast-1": {
-                "AMZNLINUX": "ami-68097514"
-            },
-            "ap-southeast-2": {
-                "AMZNLINUX": "ami-942dd1f6"
-            },
-            "ca-central-1": {
-                "AMZNLINUX": "ami-a954d1cd"
-            },
-            "eu-central-1": {
-                "AMZNLINUX": "ami-5652ce39"
-            },
-            "eu-west-1": {
-                "AMZNLINUX": "ami-d834aba1"
-            },
-            "eu-west-2": {
-                "AMZNLINUX": "ami-403e2524"
-            },
-            "sa-east-1": {
-                "AMZNLINUX": "ami-84175ae8"
-            },
-            "us-east-1": {
-                "AMZNLINUX": "ami-97785bed"
-            },
-            "us-east-2": {
-                "AMZNLINUX": "ami-f63b1193"
-            },
-            "us-west-1": {
-                "AMZNLINUX": "ami-824c4ee2"
-            },
-            "us-west-2": {
-                "AMZNLINUX": "ami-f2d3638a"
-            }
-        },
-        "VPCLayout" : {
-            "VPC" : { "CIDR" : "10.5.0.0/16" },
-            "PublicSubnet1Config" : { "CIDR" : "10.5.10.0/24" },
-            "PublicSubnet2Config" : { "CIDR" : "10.5.15.0/24" }
-        },
         "RegionalConfigs": {
           "us-east-1": {
             "ELBAccountId": "127311923021"
@@ -320,16 +240,61 @@
         }
     },
     "Resources" : {
-
-        "PrimaryReplicaNode0WaitForNodeInstallWaitHandle": {
-            "Type": "AWS::CloudFormation::WaitConditionHandle",
-            "Properties": {}
-        },
-        "PrimaryReplicaNode0": {
-            "DependsOn": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle",
+        "SnapshotStack": {
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {
-                "TemplateURL": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/mongodb-node.template",
+            	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/ebs-snapshot-scheduler.template"]] }
+            }
+        },
+        "VPCStack": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+                "TemplateURL": {
+                    "Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template"
+                },
+                "Parameters": {
+                    "AvailabilityZones": {
+                        "Fn::Join": [
+                            ",",
+                            {
+                                "Ref": "AvailabilityZones"
+                            }
+                        ]
+                    },
+                    "KeyPairName": {
+                        "Ref": "KeyName"
+                    },
+                    "NumberOfAZs": {
+                        "Ref": "NumberOfAZs"
+                    },
+                    "PrivateSubnet1ACIDR": {
+                        "Ref": "PrivateSubnet1CIDR"
+                    },
+                    "PrivateSubnet2ACIDR": {
+                        "Ref": "PrivateSubnet2CIDR"
+                    },
+                    "PrivateSubnet3ACIDR": {
+                        "Ref": "PrivateSubnet3CIDR"
+                    },
+                    "PublicSubnet1CIDR": {
+                        "Ref": "PublicSubnet1CIDR"
+                    },
+                    "PublicSubnet2CIDR": {
+                        "Ref": "PublicSubnet2CIDR"
+                    },
+                    "PublicSubnet3CIDR": {
+                        "Ref": "PublicSubnet3CIDR"
+                    },
+                    "VPCCIDR": {
+                        "Ref": "VPCCIDR"
+                    }
+                }
+            }
+        },
+        "MongoDBStack": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+            	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb.template"]]},
                 "Parameters": {
                     "QSS3BucketName": {
                         "Ref": "QSS3BucketName"
@@ -340,10 +305,7 @@
                     "ClusterReplicaSetCount": {
                         "Ref": "ClusterReplicaSetCount"
                     },
-                    "Iops": {
-                        "Ref": "Iops"
-                    },
-                    "KeyName": {
+                    "KeyPairName": {
                         "Ref": "KeyName"
                     },
                     "MongoDBVersion": {
@@ -355,400 +317,120 @@
                     "MongoDBAdminPassword": {
                         "Ref": "MongoDBAdminPassword"
                     },
-                    "NodeSubnet": {
-                        "Ref": "PublicSubnet1"
-                    },
-                    "MongoDBServerSecurityGroupID": {
-                        "Ref": "MongoDBServerSecurityGroup"
-                    },
-                    "MongoDBServersSecurityGroupID": {
-                        "Ref": "MongoDBServersSecurityGroup"
-                    },
-                    "MongoDBNodeIAMProfileID": {
-                        "Ref": "MongoDBNodeIAMProfile"
-                    },
-                    "VPC": {
-                        "Ref": "VPC"
-                    },
-                    "VolumeSize": {
-                        "Ref": "VolumeSize"
-                    },
-                    "VolumeType": {
-                        "Ref": "VolumeType"
-                    },
-                    "StackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "ImageId": {
-                        "Fn::FindInMap": [
-                            "AWSAMIRegionMap",
-                            {
-                                "Ref": "AWS::Region"
-                            },
-                            "AMZNLINUX"
+                    "PrimaryNodeSubnet": {
+                        "Fn::GetAtt": [
+                            "VPCStack",
+                            "Outputs.PrivateSubnet1AID"
                         ]
                     },
-                    "ReplicaNodeNameTag": "PrimaryReplicaNode0",
-                    "NodeReplicaSetIndex": "0",
-                    "ReplicaShardIndex": {
-                        "Ref": "ReplicaShardIndex"
-                    },
-                    "ReplicaNodeWaitForNodeInstallWaitHandle": {
-                        "Ref": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle"
-                    }
-                }
-            }
-        },
-        "PrimaryReplicaNode0WaitForNodeInstall": {
-            "Type": "AWS::CloudFormation::WaitCondition",
-            "DependsOn": "PrimaryReplicaNode0",
-            "Properties": {
-                "Handle": {
-                    "Ref": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle"
-                },
-                "Timeout": "3600"
-            }
-        },
-
-        "SecondaryReplicaNode0WaitForNodeInstallWaitHandle": {
-            "Type": "AWS::CloudFormation::WaitConditionHandle",
-            "Properties": {},
-            "Condition": "CreateThreeReplicaSet"
-        },
-        "SecondaryReplicaNode0": {
-            "DependsOn": "SecondaryReplicaNode0WaitForNodeInstallWaitHandle",
-            "Condition": "CreateThreeReplicaSet",
-            "Type": "AWS::CloudFormation::Stack",
-            "Properties": {
-                "TemplateURL": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/mongodb-node.template",
-                "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
-                    "ClusterReplicaSetCount": {
-                        "Ref": "ClusterReplicaSetCount"
-                    },
-                    "Iops": {
-                        "Ref": "Iops"
-                    },
-                    "KeyName": {
-                        "Ref": "KeyName"
-                    },
-                    "MongoDBVersion": {
-                        "Ref": "MongoDBVersion"
-                    },
-                    "MongoDBAdminUsername": {
-                        "Ref": "MongoDBAdminUsername"
-                    },
-                    "MongoDBAdminPassword": {
-                        "Ref": "MongoDBAdminPassword"
-                    },
-                    "NodeSubnet": {
-                        "Ref": "PublicSubnet2"
-                    },
-                    "MongoDBServerSecurityGroupID": {
-                        "Ref": "MongoDBServerSecurityGroup"
-                    },
-                    "MongoDBServersSecurityGroupID": {
-                        "Ref": "MongoDBServersSecurityGroup"
-                    },
-                    "MongoDBNodeIAMProfileID": {
-                        "Ref": "MongoDBNodeIAMProfile"
-                    },
-                    "VPC": {
-                        "Ref": "VPC"
-                    },
-                    "VolumeSize": {
-                        "Ref": "VolumeSize"
-                    },
-                    "VolumeType": {
-                        "Ref": "VolumeType"
-                    },
-                    "StackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "ImageId": {
-                        "Fn::FindInMap": [
-                            "AWSAMIRegionMap",
-                            {
-                                "Ref": "AWS::Region"
-                            },
-                            "AMZNLINUX"
+                    "Secondary0NodeSubnet": {
+                        "Fn::GetAtt": [
+                            "VPCStack",
+                            "Outputs.PrivateSubnet2AID"
                         ]
                     },
-                    "ReplicaNodeNameTag": "SecondaryReplicaNode0",
-                    "NodeReplicaSetIndex": "1",
-                    "ReplicaShardIndex": {
-                        "Ref": "ReplicaShardIndex"
-                    },
-                    "ReplicaNodeWaitForNodeInstallWaitHandle": {
-                        "Ref": "SecondaryReplicaNode0WaitForNodeInstallWaitHandle"
-                    }
-                }
-            }
-        },
-        "SecondaryReplicaNode0WaitForNodeInstall": {
-            "Type": "AWS::CloudFormation::WaitCondition",
-            "Condition": "CreateThreeReplicaSet",
-            "DependsOn": "SecondaryReplicaNode0",
-            "Properties": {
-                "Handle": {
-                    "Ref": "SecondaryReplicaNode0WaitForNodeInstallWaitHandle"
-                },
-                "Timeout": "3600"
-            }
-        },
-        "SecondaryReplicaNode1WaitForNodeInstallWaitHandle": {
-            "Type": "AWS::CloudFormation::WaitConditionHandle",
-            "Properties": {},
-            "Condition": "CreateThreeReplicaSet"
-        },
-        "SecondaryReplicaNode1": {
-            "DependsOn": "SecondaryReplicaNode1WaitForNodeInstallWaitHandle",
-            "Condition": "CreateThreeReplicaSet",
-            "Type": "AWS::CloudFormation::Stack",
-            "Properties": {
-                "TemplateURL": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}templates/mongodb-node.template",
-                "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
-                    "ClusterReplicaSetCount": {
-                        "Ref": "ClusterReplicaSetCount"
-                    },
-                    "Iops": {
-                        "Ref": "Iops"
-                    },
-                    "KeyName": {
-                        "Ref": "KeyName"
-                    },
-                    "MongoDBVersion": {
-                        "Ref": "MongoDBVersion"
-                    },
-                    "MongoDBAdminUsername": {
-                        "Ref": "MongoDBAdminUsername"
-                    },
-                    "MongoDBAdminPassword": {
-                        "Ref": "MongoDBAdminPassword"
-                    },
-                    "NodeInstanceType": {
-                        "Ref": "NodeInstanceType"
-                    },
-                    "NodeSubnet": {
-                        "Ref": "PublicSubnet2"
-                    },
-                    "MongoDBServerSecurityGroupID": {
-                        "Ref": "MongoDBServerSecurityGroup"
-                    },
-                    "MongoDBServersSecurityGroupID": {
-                        "Ref": "MongoDBServersSecurityGroup"
-                    },
-                    "MongoDBNodeIAMProfileID": {
-                        "Ref": "MongoDBNodeIAMProfile"
-                    },
-                    "VPC": {
-                        "Ref": "VPC"
-                    },
-                    "VolumeSize": {
-                        "Ref": "VolumeSize"
-                    },
-                    "VolumeType": {
-                        "Ref": "VolumeType"
-                    },
-                    "StackName": {
-                        "Ref": "AWS::StackName"
-                    },
-                    "ImageId": {
-                        "Fn::FindInMap": [
-                            "AWSAMIRegionMap",
+                    "Secondary1NodeSubnet": {
+                        "Fn::If": [
+                            "RepeatSubnet",
                             {
-                                "Ref": "AWS::Region"
-                            },
-                            "AMZNLINUX"
-                        ]
-                    },
-                    "ReplicaNodeNameTag": "SecondaryReplicaNode1",
-                    "NodeReplicaSetIndex": "2",
-                    "ReplicaShardIndex": {
-                        "Ref": "ReplicaShardIndex"
-                    },
-                    "ReplicaNodeWaitForNodeInstallWaitHandle": {
-                        "Ref": "SecondaryReplicaNode1WaitForNodeInstallWaitHandle"
-                    }
-                }
-            }
-        },
-        "SecondaryReplicaNode1WaitForNodeInstall": {
-            "Type": "AWS::CloudFormation::WaitCondition",
-            "Condition": "CreateThreeReplicaSet",
-            "DependsOn": "SecondaryReplicaNode1",
-            "Properties": {
-                "Handle": {
-                    "Ref": "SecondaryReplicaNode1WaitForNodeInstallWaitHandle"
-                },
-                "Timeout": "3600"
-            }
-        },
-
-
-        "MongoDBServerSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "GroupDescription": "MongoDB server management and access ports",
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "22",
-                        "ToPort": "22",
-                        "SourceSecurityGroupId": {
-                            "Ref": "EcsInstanceSecurityGroup"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "27017",
-                        "ToPort": "27030",
-                        "SourceSecurityGroupId": {
-                            "Ref": "EcsInstanceSecurityGroup"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "28017",
-                        "ToPort": "28017",
-                        "SourceSecurityGroupId": {
-                            "Ref": "EcsInstanceSecurityGroup"
-                        }
-                    }
-                ]
-            }
-        },
-        "MongoDBServersSecurityGroup": {
-            "Type": "AWS::EC2::SecurityGroup",
-            "Properties": {
-                "VpcId": {
-                    "Ref": "VPC"
-                },
-                "GroupDescription": "MongoDB inter-server communication and management ports",
-                "SecurityGroupIngress": [
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "22",
-                        "ToPort": "22",
-                        "SourceSecurityGroupId": {
-                            "Ref": "MongoDBServerSecurityGroup"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "27017",
-                        "ToPort": "27030",
-                        "SourceSecurityGroupId": {
-                            "Ref": "MongoDBServerSecurityGroup"
-                        }
-                    },
-                    {
-                        "IpProtocol": "tcp",
-                        "FromPort": "28017",
-                        "ToPort": "28017",
-                        "SourceSecurityGroupId": {
-                            "Ref": "MongoDBServerSecurityGroup"
-                        }
-                    }
-                ]
-            }
-        },
-        "MongoDBNodeIAMRole": {
-            "Type": "AWS::IAM::Role",
-            "Properties": {
-                "AssumeRolePolicyDocument": {
-                    "Statement": [
-                        {
-                            "Effect": "Allow",
-                            "Principal": {
-                                "Service": [
-                                    "ec2.amazonaws.com"
+                                "Fn::GetAtt": [
+                                    "VPCStack",
+                                    "Outputs.PrivateSubnet2AID"
                                 ]
                             },
-                            "Action": [
-                                "sts:AssumeRole"
-                            ]
-                        }
+                            {
+                                "Fn::GetAtt": [
+                                    "VPCStack",
+                                    "Outputs.PrivateSubnet3AID"
+                                ]
+                            }
+                        ]
+                    },
+                    "ReplicaShardIndex": {
+                        "Ref": "ReplicaShardIndex"
+                    },
+                    "RemoteAccessCIDR": {
+                        "Ref": "RemoteAccessCIDR"
+                    },
+                    "VPC": {
+                        "Fn::GetAtt": [
+                            "VPCStack",
+                            "Outputs.VPCID"
+                        ]
+                    },
+                    "VolumeSize": {
+                        "Ref": "VolumeSize"
+                    },
+                    "VolumeType": {
+                        "Ref": "VolumeType"
+                    },
+                    "HostedZoneName": {
+                        "Fn::Join": [ ".", [ { "Ref": "EcsCluster" }, "internal" ] ]
+                    }
+                }
+            }
+        },
+        "PrimaryReplicaNodeDns" : {
+            "Type" : "AWS::Route53::RecordSet",
+            "Properties" : {
+                "Name": { "Fn::Join": [ ".", [ "db0", { "Ref": "EcsCluster" }, "internal" ] ] },
+                "HostedZoneId" : { "Ref": "HostedZone" },
+                "Type" : "A",
+                "TTL" : "900",
+                "ResourceRecords" : [{
+                    "Fn::GetAtt": [
+                        "MongoDBStack",
+                        "Outputs.PrimaryReplicaNodeIp"
                     ]
-                },
-                "Path": "/",
-                "Policies": [
-                    {
-                        "PolicyName": "Backup",
-                        "PolicyDocument": {
-                            "Statement": [
-                                {
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "s3:*",
-                                        "ec2:Describe*",
-                                        "ec2:AttachNetworkInterface",
-                                        "ec2:AttachVolume",
-                                        "ec2:CreateTags",
-                                        "ec2:CreateVolume",
-                                        "ec2:RunInstances",
-                                        "ec2:StartInstances",
-                                        "ec2:DeleteVolume",
-                                        "ec2:CreateSecurityGroup",
-                                        "ec2:CreateSnapshot"
-                                    ],
-                                    "Resource": "*"
-                                },
-                                {
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "dynamodb:*",
-                                        "dynamodb:Scan",
-                                        "dynamodb:Query",
-                                        "dynamodb:GetItem",
-                                        "dynamodb:BatchGetItem",
-                                        "dynamodb:UpdateTable"
-                                    ],
-                                    "Resource": [
-                                        "*"
-                                    ]
-                                }
-                            ]
-                        }
-                    }
-                ]
+                }]
             }
         },
-        "MongoDBNodeIAMProfile": {
-            "Type": "AWS::IAM::InstanceProfile",
-            "Properties": {
-                "Path": "/",
-                "Roles": [
-                    {
-                        "Ref": "MongoDBNodeIAMRole"
-                    }
-                ]
+        "SecondaryReplicaNode0Dns" : {
+            "Type" : "AWS::Route53::RecordSet",
+            "Condition": "CreateThreeReplicaSet",
+            "Properties" : {
+                "Name": { "Fn::Join": [ ".", [ "db1", { "Ref": "EcsCluster" }, "internal" ] ] },
+                "HostedZoneId" : { "Ref": "HostedZone" },
+                "Type" : "A",
+                "TTL" : "900",
+                "ResourceRecords" : [{
+                    "Fn::GetAtt": [
+                        "MongoDBStack",
+                        "Outputs.SecondaryReplicaNode0Ip"
+                    ]
+                }]
             }
         },
-
-
+        "SecondaryReplicaNode1Dns" : {
+            "Type" : "AWS::Route53::RecordSet",
+            "Condition": "CreateThreeReplicaSet",
+            "Properties" : {
+                "Name": { "Fn::Join": [ ".", [ "db2", { "Ref": "EcsCluster" }, "internal" ] ] },
+                "HostedZoneId" : { "Ref": "HostedZone" },
+                "Type" : "A",
+                "TTL" : "900",
+                "ResourceRecords" : [{
+                    "Fn::GetAtt": [
+                        "MongoDBStack",
+                        "Outputs.SecondaryReplicaNode1Ip"
+                    ]
+                }]
+            }
+        },
         "LoadBalancer": {
           "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
           "Properties": {
             "Scheme": "internal",
             "Subnets": [{
-              "Ref": "PublicSubnet1"
+              "Fn::GetAtt": [
+                  "VPCStack",
+                  "Outputs.PublicSubnet1ID"
+              ]
             }, {
-              "Ref": "PublicSubnet2"
+              "Fn::GetAtt": [
+                  "VPCStack",
+                  "Outputs.PublicSubnet2ID"
+              ]
             }],
             "LoadBalancerAttributes": [{
               "Key": "access_logs.s3.enabled",
@@ -780,7 +462,6 @@
                 ]
             }
         }, 
-
         "DefaultTargetGroup": {
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
             "Properties": {
@@ -788,7 +469,10 @@
                     "Fn::Join": [ "-", [ { "Ref": "EcsCluster" }, "tg" ] ]
                 },
                 "VpcId": {
-                    "Ref": "VPC"
+                    "Fn::GetAtt": [
+                        "VPCStack",
+                        "Outputs.VPCID"
+                    ]
                 }, 
                 "Protocol": "HTTP",
                 "Port": 6800,
@@ -799,14 +483,15 @@
                 "Targets": []
             }
         },
-
-
         "LoadBalancerSecurityGroup": {
           "Type": "AWS::EC2::SecurityGroup",
           "Properties": {
             "GroupDescription": "LoadBalancer Security Group",
             "VpcId": {
-              "Ref": "VPC"
+                "Fn::GetAtt": [
+                    "VPCStack",
+                    "Outputs.VPCID"
+                ]
             },
             "SecurityGroupIngress": [{
                 "IpProtocol": "tcp",
@@ -817,67 +502,6 @@
                 }
             }]
           }
-        },
-        "VPC0" : {
-            "Type" : "AWS::EC2::VPC",
-            "Properties" : {
-                "EnableDnsSupport" : "true",
-                "EnableDnsHostnames" : "true",
-                "CidrBlock" :  { "Fn::FindInMap" : [ "VPCLayout", "VPC", "CIDR" ]},
-                "Tags" : [
-                    {
-                        "Key" : "VPC",
-                        "Value" : "ECS"
-                    },
-                    {
-                        "Key" : "Name",
-                        "Value" : "ECS refarch service discovery"
-                    }
-                ]
-            }
-        },
-        "VPCStack": {
-            "Type": "AWS::CloudFormation::Stack",
-            "Properties": {
-                "TemplateURL": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template",
-                "Parameters": {
-                    "AvailabilityZones": {
-                        "Fn::Join": [
-                            ",",
-                            {
-                                "Ref": "AvailabilityZones"
-                            }
-                        ]
-                    },
-                    "KeyPairName": {
-                        "Ref": "KeyPairName"
-                    },
-                    "NumberOfAZs": {
-                        "Ref": "NumberOfAZs"
-                    },
-                    "PrivateSubnet1ACIDR": {
-                        "Ref": "PrivateSubnet1CIDR"
-                    },
-                    "PrivateSubnet2ACIDR": {
-                        "Ref": "PrivateSubnet2CIDR"
-                    },
-                    "PrivateSubnet3ACIDR": {
-                        "Ref": "PrivateSubnet3CIDR"
-                    },
-                    "PublicSubnet1CIDR": {
-                        "Ref": "PublicSubnet1CIDR"
-                    },
-                    "PublicSubnet2CIDR": {
-                        "Ref": "PublicSubnet2CIDR"
-                    },
-                    "PublicSubnet3CIDR": {
-                        "Ref": "PublicSubnet3CIDR"
-                    },
-                    "VPCCIDR": {
-                        "Ref": "VPCCIDR"
-                    }
-                }
-            }
         },
         "HostedZone": {
             "Type": "AWS::Route53::HostedZone",
@@ -895,143 +519,15 @@
                 }]
             }
         },
-        "InternetGateway" : {
-            "Type" : "AWS::EC2::InternetGateway",
-            "DependsOn" : "VPC"
-        },
-        "AttachGateway" : {
-            "Type" : "AWS::EC2::VPCGatewayAttachment",
-            "DependsOn" : [
-                "VPC",
-                "InternetGateway"
-            ],
-            "Properties" : {
-                "VpcId" : {
-                    "Ref" : "VPC"
-                },
-                "InternetGatewayId" : {
-                    "Ref" : "InternetGateway"
-                }
-            }
-        },
-        "PublicSubnet1" : {
-            "Type" : "AWS::EC2::Subnet",
-            "DependsOn" : "AttachGateway",
-            "Properties" : {
-                "VpcId" : { "Ref" : "VPC" },
-                "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet1Config", "CIDR" ]},
-                "MapPublicIpOnLaunch": "true",
-                "AvailabilityZone" : {
-                    "Fn::Select" : [
-                        "0",
-                        {
-                            "Fn::GetAZs" : {"Ref": "AWS::Region"}
-                        }
-                    ]
-                },
-                "Tags" : [
-                    {
-                        "Key" : "Name",
-                        "Value" : "Public Subnet 1"
-                    }
-                ]
-            }
-        },
-        "PublicSubnet2" : {
-            "Type" : "AWS::EC2::Subnet",
-            "DependsOn" : "AttachGateway",
-            "Properties" : {
-                "VpcId" : { "Ref" : "VPC" },
-                "CidrBlock" : { "Fn::FindInMap" : [ "VPCLayout", "PublicSubnet2Config", "CIDR" ]},
-                "MapPublicIpOnLaunch": "true",
-                "AvailabilityZone" : {
-                    "Fn::Select" : [
-                        "1",
-                        {
-                            "Fn::GetAZs" : {"Ref": "AWS::Region"}
-                        }
-                    ]
-                },
-                "Tags" : [
-                    {
-                        "Key" : "Name",
-                        "Value" : "Public Subnet 2"
-                    }
-                ]
-            }
-        },
-        "PublicRouteTable" : {
-            "Type" : "AWS::EC2::RouteTable",
-            "DependsOn" : [
-                "VPC",
-                "AttachGateway"
-            ],
-            "Properties" : {
-                "VpcId" : {
-                    "Ref" : "VPC"
-                },
-                "Tags" : [
-                    {
-                        "Key" : "Name",
-                        "Value" : "Public"
-                    }
-                ]
-            }
-        },
-        "PublicRoute" : {
-            "Type" : "AWS::EC2::Route",
-            "DependsOn" : [
-                "PublicRouteTable",
-                "AttachGateway"
-            ],
-            "Properties" : {
-                "RouteTableId" : {
-                    "Ref" : "PublicRouteTable"
-                },
-                "DestinationCidrBlock" : "0.0.0.0/0",
-                "GatewayId" : {
-                    "Ref" : "InternetGateway"
-                }
-            }
-        },
-        "PublicSubnet1RouteTableAssociation" : {
-            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-            "DependsOn" : [
-                "PublicRouteTable",
-                "PublicSubnet1",
-                "AttachGateway"
-            ],
-            "Properties" : {
-                "SubnetId" : {
-                    "Ref" : "PublicSubnet1"
-                },
-                "RouteTableId" : {
-                    "Ref" : "PublicRouteTable"
-                }
-            }
-        },
-        "PublicSubnet2RouteTableAssociation" : {
-            "Type" : "AWS::EC2::SubnetRouteTableAssociation",
-            "DependsOn" : [
-                "PublicRouteTable",
-                "PublicSubnet2"
-            ],
-            "Properties" : {
-                "SubnetId" : {
-                    "Ref" : "PublicSubnet2"
-                },
-                "RouteTableId" : {
-                    "Ref" : "PublicRouteTable"
-                }
-            }
-        },
         "EcsInstanceSecurityGroup" : {
             "Type" : "AWS::EC2::SecurityGroup",
-            "DependsOn" : "AttachGateway",
             "Properties" : {
                 "GroupDescription" : "Security Group for EcsInstance",
                 "VpcId" : {
-                    "Ref" : "VPC"
+                    "Fn::GetAtt": [
+                        "VPCStack",
+                        "Outputs.VPCID"
+                    ]
                 },
                 "Tags" : [
                     {
@@ -1086,7 +582,12 @@
         "MountTargetSecurityGroup": {
           "Type": "AWS::EC2::SecurityGroup",
           "Properties": {
-            "VpcId": { "Ref": "VPC" },
+            "VpcId": {
+                "Fn::GetAtt": [
+                    "VPCStack",
+                    "Outputs.VPCID"
+                ]
+            },
             "GroupDescription": "Security group for mount target",
             "SecurityGroupIngress": [
               {
@@ -1114,7 +615,12 @@
           "Type": "AWS::EFS::MountTarget",
           "Properties": {
             "FileSystemId": { "Ref": "FileSystem" },
-            "SubnetId": { "Ref": "PublicSubnet1" },
+            "SubnetId": { 
+              "Fn::GetAtt": [
+                  "VPCStack",
+                  "Outputs.PublicSubnet1ID"
+              ]
+            },
             "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
           }
         },
@@ -1122,7 +628,12 @@
           "Type": "AWS::EFS::MountTarget",
           "Properties": {
             "FileSystemId": { "Ref": "FileSystem" },
-            "SubnetId": { "Ref": "PublicSubnet2" },
+            "SubnetId": { 
+              "Fn::GetAtt": [
+                  "VPCStack",
+                  "Outputs.PublicSubnet2ID"
+              ]
+            },
             "SecurityGroups": [ { "Ref": "MountTargetSecurityGroup" } ]
           }
         },
@@ -1277,7 +788,13 @@
             "Properties": {
                 "KeyName": { "Ref": "KeyName" },
                 "ImageId": { "Ref": "EcsAmiId" },
-                "SecurityGroups": [ { "Ref": "EcsInstanceSecurityGroup" } ],
+                "SecurityGroups": [ { "Ref": "EcsInstanceSecurityGroup" },
+                                    { "Fn::GetAtt": [
+                                        "MongoDBStack",
+                                        "Outputs.MongoDBServerAccessSecurityGroup"
+                                      ]
+                                    }
+                                  ],
                 "InstanceType": { "Ref": "EcsInstanceType" },
                 "AssociatePublicIpAddress" : "true",
                 "IamInstanceProfile": { "Fn::GetAtt" : ["InstanceProfile", "Arn"] },
@@ -1317,18 +834,20 @@
                 "Count"   : { "Ref": "AsgMaxSize" }
               }
             },
-            "DependsOn": ["MountTarget1", "MountTarget2", "AttachGateway"],
+            "DependsOn": ["MountTarget1", "MountTarget2"],
             "Properties": {
-                "AvailabilityZones" : [
-                    { "Fn::GetAtt" : [ "PublicSubnet1", "AvailabilityZone" ] },
-                    { "Fn::GetAtt" : [ "PublicSubnet2", "AvailabilityZone" ] }
-                ],
-
-                "VPCZoneIdentifier" : [
-                    { "Ref" : "PublicSubnet1" },
-                    { "Ref" : "PublicSubnet2" }
-                ],
-
+                "AvailabilityZones" : { "Ref": "AvailabilityZones" },
+                "VPCZoneIdentifier" : [{ 
+                  "Fn::GetAtt": [
+                    "VPCStack",
+                    "Outputs.PublicSubnet1ID"
+                  ]
+                }, { 
+                  "Fn::GetAtt": [
+                    "VPCStack",
+                    "Outputs.PublicSubnet2ID"
+                  ]
+                }],
                 "LaunchConfigurationName": { "Ref": "LaunchConfig" },
                 "TargetGroupARNs": [
                     { "Ref": "DefaultTargetGroup" }
@@ -1652,12 +1171,12 @@
                   "Principal": { 
                     "AWS": {
                        "Fn::FindInMap": [
-                         "RegionalConfigs", { Ref: "AWS::Region" }, "ELBAccountId"
+                         "RegionalConfigs", { "Ref": "AWS::Region" }, "ELBAccountId"
                        ]
                     }
                   },
                   "Action": "s3:PutObject",
-                  "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"]]},
+                  "Resource": { "Fn::Join" : ["", ["arn:aws:s3:::", {"Ref":"S3Bucket"}, "/AWSLogs/", {"Ref":"AWS::AccountId"}, "/*"] ] }
                 }
               ]
             }
