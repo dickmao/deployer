@@ -798,7 +798,7 @@
                 "InstanceType": { "Ref": "EcsInstanceType" },
                 "AssociatePublicIpAddress" : "true",
                 "IamInstanceProfile": { "Fn::GetAtt" : ["InstanceProfile", "Arn"] },
-                "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+                "UserData": { "Fn::Base64" : { "Fn::Join" : ["", [
                     "#!/bin/bash -xe\n",
                     "echo ECS_CLUSTER=", {"Ref": "EcsCluster"}, " >> /etc/ecs/ecs.config\n",
                     "# scrapoxy delete security group needs at least 60s\n",
