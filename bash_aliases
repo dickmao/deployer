@@ -34,34 +34,11 @@ function skan {
 }
 
 function lambdalogs {
-  local cluster
-  local stack
   local farback
-  local json
   local loggroups
-  local stacks
-
-  cluster=$(get-cluster $2)
-  stack="${1:-ecs-dick-$cluster}"
-  farback=${2:-1h}
-  declare -a loggroups=()
-  declare -a stacks=($stack)
-
-  IFS=$'\n'
-
-  while [ ${#stacks[@]} -gt 0 ] ; do
-    json=$(aws cloudformation describe-stack-resources --stack-name ${stacks[0]})
-    stacks=( "${stacks[@]:1}" )
-    for id in $(echo $json | jq -r '.StackResources[] | select(.ResourceType=="AWS::Lambda::Function") | .PhysicalResourceId ' ) ; do
-      loggroups=("${loggroups[@]}" "${id}")
-    done
-    for stack in $(echo $json | jq -r '.StackResources[] | select(.ResourceType=="AWS::CloudFormation::Stack") | .PhysicalResourceId '); do
-      stacks=("${stacks[@]}" "$stack" )
-    done
-  done
-
-  unset IFS
-
+  local choice
+  farback=${1:-1h}
+  read -r -a loggroups <<< $(awslogs groups)
   local i
   i=1
   for lg in ${loggroups[@]}; do
@@ -69,7 +46,8 @@ function lambdalogs {
     ((i++))
   done
   read -p "Choose: " choice
-  awslogs get /aws/lambda/${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
+  ((choice--))
+  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
 }
 
 function cloudtrails {
