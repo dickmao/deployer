@@ -1,3 +1,4 @@
+{% set primary_replica_node_name = 'PrimaryReplicaNode0' %}
 {
     "AWSTemplateFormatVersion": "2010-09-09",
     "Description": "(000F) Deploy MongoDB Replica Set on AWS (Existing VPC)",
@@ -446,8 +447,8 @@
             "Type": "AWS::CloudFormation::WaitConditionHandle",
             "Properties": {}
         },
-        "PrimaryReplicaNode0": {
-            "DependsOn": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle",
+        "{{ primary_replica_node_name }}": {
+            "DependsOn": "{{ primary_replica_node_name }}WaitForNodeInstallWaitHandle",
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {
             	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb-node.template"]]},
@@ -512,26 +513,29 @@
                             "AMZNLINUX"
                         ]
                     },
-                    "ReplicaNodeNameTag": "PrimaryReplicaNode0",
+                    "ReplicaNodeNameTag": "{{ primary_replica_node_name }}",
                     "NodeReplicaSetIndex": "0",
                     "ReplicaShardIndex": {
                         "Ref": "ReplicaShardIndex"
                     },
                     "ReplicaNodeWaitForNodeInstallWaitHandle": {
-                        "Ref": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle"
+                        "Ref": "{{ primary_replica_node_name }}WaitForNodeInstallWaitHandle"
                     },
                     "HostedZoneName": {
                         "Ref": "HostedZoneName"
-                    }
+                    },
+                    "XvdfSnapshotId": "{{ primary_replica_node_name | aws_snapshot_of('/dev/xvdf') }}",
+                    "XvdgSnapshotId": "{{ primary_replica_node_name | aws_snapshot_of('/dev/xvdg') }}",
+                    "XvdhSnapshotId": "{{ primary_replica_node_name | aws_snapshot_of('/dev/xvdh') }}"
                 }
             }
         },
-        "PrimaryReplicaNode0WaitForNodeInstall": {
+        "{{ primary_replica_node_name }}WaitForNodeInstall": {
             "Type": "AWS::CloudFormation::WaitCondition",
-            "DependsOn": "PrimaryReplicaNode0",
+            "DependsOn": "{{ primary_replica_node_name }}",
             "Properties": {
                 "Handle": {
-                    "Ref": "PrimaryReplicaNode0WaitForNodeInstallWaitHandle"
+                    "Ref": "{{ primary_replica_node_name }}WaitForNodeInstallWaitHandle"
                 },
                 "Timeout": "3600"
             }
@@ -729,7 +733,7 @@
         "PrimaryReplicaNodeIp": {
             "Value": {
                 "Fn::GetAtt": [
-                    "PrimaryReplicaNode0",
+                    "{{ primary_replica_node_name }}",
                     "Outputs.NodePrivateIp"
                 ]
             },
@@ -738,7 +742,7 @@
         "PrimaryReplicaNodeDns": {
             "Value": {
                 "Fn::GetAtt": [
-                    "PrimaryReplicaNode0",
+                    "{{ primary_replica_node_name }}",
                     "Outputs.NodePrivateDns"
                 ]
             },

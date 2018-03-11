@@ -228,7 +228,8 @@
                                         "ec2:DescribeRegions",
                                         "ec2:DescribeVolumes",
                                         "ec2:DescribeInstances",
-                                        "cloudformation:DescribeStacks"
+                                        "cloudformation:DescribeStacks",
+                                        "cloudformation:ListStacks"
                                     ],
                                     "Resource": "*"
                                 }
@@ -508,7 +509,7 @@
             "Type": "AWS::Events::Rule",
             "Properties": {
                 "Description": "Rule to trigger EC2Scheduler function on a schedule",
-                "ScheduleExpression": "rate(2 minutes)",
+                "ScheduleExpression": "rate(5 minutes)",
                 "State": "ENABLED",
                 "Targets": [
                     {

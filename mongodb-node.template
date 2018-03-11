@@ -60,6 +60,21 @@
             "Description": "Instance Name",
             "Type": "String"
         },
+        "XvdfSnapshotId": {
+            "Description": "Snapshot Id",
+            "Default": "",
+            "Type": "String"
+        },
+        "XvdgSnapshotId": {
+            "Description": "Snapshot Id",
+            "Default": "",
+            "Type": "String"
+        },
+        "XvdhSnapshotId": {
+            "Description": "Snapshot Id",
+            "Default": "",
+            "Type": "String"
+        },
         "NodeReplicaSetIndex": {
             "Description": "Instance Index",
             "Type": "String"
@@ -155,6 +170,18 @@
         }
     },
     "Conditions": {
+        "SnapshotExtant": {
+            "Fn::Not": [
+               {
+                  "Fn::Equals": [
+                      {
+                          "Ref": "XvdfSnapshotId"
+                      },
+                      ""
+                  ]
+               }
+            ]
+        },
         "UsePIops": {
             "Fn::Equals": [
                 {
@@ -258,28 +285,21 @@
                 ],
                 "BlockDeviceMappings": [
                     {
-                        "DeviceName": "/dev/xvdg",
-                        "Ebs": {
-                            "VolumeType": "io1",
-                            "DeleteOnTermination": "true",
-                            "VolumeSize": "25",
-                            "Iops": "250"
-                        }
-                    },
-                    {
-                        "DeviceName": "/dev/xvdh",
-                        "Ebs": {
-                            "VolumeType": "io1",
-                            "DeleteOnTermination": "true",
-                            "VolumeSize": "25",
-                            "Iops": "200"
-                        }
-                    },
-                    {
                         "DeviceName": "/dev/xvdf",
                         "Ebs": {
+                            "SnapshotId": {
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "XvdfSnapshotId" },
+                                    { "Ref": "AWS::NoValue" }
+                                ]
+                            },
                             "VolumeSize": {
-                                "Ref": "VolumeSize"
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "AWS::NoValue" },
+                                    { "Ref": "VolumeSize" }
+                                ]
                             },
                             "VolumeType": {
                                 "Ref": "VolumeType"
@@ -296,6 +316,50 @@
                                 ]
                             },
                             "DeleteOnTermination": "true"
+                        }
+                    },
+                    {
+                        "DeviceName": "/dev/xvdg",
+                        "Ebs": {
+                            "SnapshotId": {
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "XvdgSnapshotId" },
+                                    { "Ref": "AWS::NoValue" }
+                                ]
+                            },
+                            "VolumeSize": {
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "AWS::NoValue" },
+                                    { "Ref": "VolumeSize" }
+                                ]
+                            },
+                            "VolumeType": "io1",
+                            "DeleteOnTermination": "true",
+                            "Iops": "250"
+                        }
+                    },
+                    {
+                        "DeviceName": "/dev/xvdh",
+                        "Ebs": {
+                            "SnapshotId": {
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "XvdhSnapshotId" },
+                                    { "Ref": "AWS::NoValue" }
+                                ]
+                            },
+                            "VolumeSize": {
+                                "Fn::If": [
+                                    "SnapshotExtant",
+                                    { "Ref": "AWS::NoValue" },
+                                    { "Ref": "VolumeSize" }
+                                ]
+                            },
+                            "VolumeType": "io1",
+                            "DeleteOnTermination": "true",
+                            "Iops": "200"
                         }
                     }
                 ],

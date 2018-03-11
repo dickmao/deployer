@@ -25,7 +25,10 @@ cf_client = boto3.client('cloudformation')
 
 def backup_instance(ec2, instance_obj, retention_days, history_table, aws_region):
     new_snapshot_list = []
-    for volume in instance_obj.volumes.all():
+    for mapping in instance_obj.block_device_mappings:
+        if instance_obj.root_device_name == mapping['DeviceName']:
+            continue
+        volume = ec2.Volume(mapping['Ebs']['VolumeId'])
         current_time = datetime.datetime.utcnow()
         current_time_str = current_time.strftime(
             "%h %d,%H:%M")
@@ -41,6 +44,8 @@ def backup_instance(ec2, instance_obj, retention_days, history_table, aws_region
 
         # schedule snapshot creation.
         try:
+            name = [kv['Value'] for kv in instance_obj.tags if kv['Key'] == 'Name'][0]
+            device = [attachment['Device'] for attachment in volume.attachments][0]
             snapshot = ec2.create_snapshot(
                 VolumeId=volume.id, Description=description)
 
@@ -54,7 +59,7 @@ def backup_instance(ec2, instance_obj, retention_days, history_table, aws_region
                 'start_time': str(current_time)
             }
 
-            response = history_table.put_item(Item=snapshot_entry)
+            history_table.put_item(Item=snapshot_entry)
             new_snapshot_list.append(snapshot.id)
         except Exception as e:
             print e
@@ -205,7 +210,13 @@ def tag_snapshots(ec2, snapshot_list):
 def lambda_handler(event, context):
     # Reading output items from the CF stack
     outputs = {}
-    stack_name = context.invoked_function_arn.split(':')[6].rsplit('-', 2)[0]
+    stacks = cf_client.list_stacks(StackStatusFilter=['CREATE_COMPLETE'])['StackSummaries']
+    stack_prefix = context.invoked_function_arn.split(':')[6].rsplit('-', 2)[0]
+    try:
+        stack_name = [stack['StackName'] for stack in stacks if stack['StackName'].startswith(stack_prefix)][0]
+    except IndexError:
+        print("No stack begins with {}".format(stack_prefix))
+        return
     response = cf_client.describe_stacks(StackName=stack_name)
     for e in response['Stacks'][0]['Outputs']:
         outputs[e['OutputKey']] = e['OutputValue']
@@ -215,8 +226,7 @@ def lambda_handler(event, context):
     policy_table = dynamodb.Table(policy_table_name)
     history_table = dynamodb.Table(history_table_name)
 
-    aws_regions = ec2_client.describe_regions()['Regions']
-    aws_regions = "us-east-2"
+    aws_regions = [ region for region in ec2_client.describe_regions()['Regions'] if region['RegionName'] == "us-east-2" ]
 
     response = policy_table.get_item(
         Key={
@@ -308,7 +318,7 @@ def lambda_handler(event, context):
 
                             # Append to start list
                             if snapshot_time >= str(now_max) and snapshot_time <= str(now) and \
-                                            active_day is True:
+                                             active_day is True:
                                 snapshot_list.append(i.instance_id)
                                 retention_period_per_instance[i.instance_id] = retention_days
             deleted_snapshot_count = 0
@@ -374,6 +384,6 @@ def lambda_handler(event, context):
         headers = {'content-type': 'application/json'}
         req = Request(url, data, headers)
         rsp = urlopen(req)
-        content = rsp.read()
+        rsp.read()
         rsp_code = rsp.getcode()
         print ('Response Code: {}'.format(rsp_code))

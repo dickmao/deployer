@@ -15,10 +15,18 @@ function sigH {
 trap finish EXIT
 trap sigH INT TERM ERR QUIT
 
+function render {
+    python ${wd}/render-template.py --region $REGION --outdir /var/tmp "$@"
+}
+
 function refresh_templates {
     base=$1
+    s3cmd mb  s3://${ACCOUNT}.templates --region $REGION 2> /dev/null || [ $? == 13 ]
+    render $base
+    s3cmd put /var/tmp/$base s3://${ACCOUNT}.templates/$base --region $REGION 
+
     IFS=$'\n'
-    for s3key in $(cat $base | jq -cr '.. | .Code? // empty | .S3Key '); do
+    for s3key in $(cat /var/tmp/$base | jq -cr '.. | .Code? // empty | .S3Key '); do
         zipfile=$(basename $s3key)
         dir=${zipfile%%\.*}
         if git ls-files --error-unmatch $dir 2>/dev/null 1>/dev/null; then
@@ -27,12 +35,10 @@ function refresh_templates {
             s3cmd put /var/tmp/$dir.zip s3://${ACCOUNT}.zips/$dir.zip --region $REGION 
         fi
     done
-    for url in $(cat $base | jq -cr '.. | .TemplateURL? // empty'); do
+    for url in $(cat /var/tmp/$base | jq -cr '.. | .TemplateURL? // empty'); do
         template=$(basename $url)
         template=${template%%\"*}
         if git ls-files --error-unmatch $template 2>/dev/null 1>/dev/null; then
-            s3cmd mb  s3://${ACCOUNT}.templates --region $REGION 2> /dev/null || [ $? == 13 ]
-            s3cmd put ./$template s3://${ACCOUNT}.templates/$template --region $REGION 
             refresh_templates $template
         fi
     done

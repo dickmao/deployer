@@ -47,7 +47,7 @@ function lambdalogs {
   done
   read -p "Choose: " choice
   ((choice--))
-  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
+  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;' | less
 }
 
 function cloudtrails {
@@ -111,17 +111,15 @@ export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
 export PATH=$PATH:$GOPATH/bin
 
 function ssh-mongo {
+    local cluster
     cluster=$(get-cluster $1);
-    if test "${clustersvc2ip[${cluster}:mongo]+isset}" ; then
+    if ! q_cluster_changed $cluster 0 ; then
       CLUSTER=$cluster ssh-ecs 0 ssh ${clustersvc2ip["${cluster}:mongo"]}
-      if [ $? != 0 ]; then
-        unset clustersvc2ip["${cluster}:mongo"]
-      else
-        return
-      fi
+      return
     fi
     CLUSTER=$cluster scp-ecs $HOME/.ssh/id_rsa .ssh/
     # FIXME needs to be by cluster
+    local mongo
     mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r '.Reservations[0] | .Instances[0] | .PrivateIpAddress')
     clustersvc2ip["${cluster}:mongo"]=$mongo
     CLUSTER=$cluster ssh-ecs 0 ssh ${clustersvc2ip["${cluster}:mongo"]}
@@ -228,16 +226,30 @@ function awslog2 {
   done
 }
 
+function q_cluster_changed {
+  local cluster
+  local idx
+  cluster=$(get-cluster $1)
+  idx=$2
+  if test "${clustersvc2ip[${cluster}:${idx}]+isset}" ; then
+    if ! nc -zw 1 ${clustersvc2ip["${cluster}:${idx}"]} 22 ; then
+      unset clustersvc2ip["${cluster}:${idx}"]
+      return 0
+    else
+      return 1
+    fi
+  fi
+  return 0   
+}
+
 function get-ip-for-index {
+  local svc
+  local cluster
   svc="$1"
   cluster=$(get-cluster $2)
-  if test "${clustersvc2ip[${cluster}:${svc}]+isset}" ; then
-    if ! nc -zw 1 ${clustersvc2ip["${cluster}:${svc}"]} 22 ; then
-      unset clustersvc2ip["${cluster}:${svc}"]
-    else
-      echo ${clustersvc2ip["${cluster}:${svc}"]}
-      return
-    fi
+  if ! q_cluster_changed $cluster $svc ; then
+    echo ${clustersvc2ip["${cluster}:${svc}"]}
+    return
   fi
   ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-dick-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-dick-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
   clustersvc2ip["${cluster}:${svc}"]=$ip
@@ -249,14 +261,11 @@ function get-ip-for-svc {
   svc="$1"
   sgroup=${svc%%-*}
   cluster=$(get-cluster $2)
-  if test "${clustersvc2ip[${cluster}:${svc}]+isset}" ; then
-    if ! nc -zw 1 ${clustersvc2ip["${cluster}:${svc}"]} 22 ; then
-      unset clustersvc2ip["${cluster}:${svc}"]
-    else
-      echo ${clustersvc2ip["${cluster}:${svc}"]}
-      return
-    fi
+  if ! q_cluster_changed $cluster $svc ; then
+    echo ${clustersvc2ip["${cluster}:${svc}"]}
+    return
   fi
+
   for arn in $(aws ecs list-tasks --cluster ecs-dick-$cluster | jq -r '.taskArns[] ') ; do 
     group_inst=$(aws ecs describe-tasks --cluster ecs-dick-$cluster --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
     group=${group_inst%% *}
