@@ -168,15 +168,16 @@
         "VolumeSize": {
             "Type": "String",
             "Description": "EBS Volume Size (data) to be attached to node in GBs",
-            "Default": "400"
+            "Default": "5"
         },
         "VolumeType": {
             "Type": "String",
-            "Description": "EBS Volume Type (data) to be attached to node in GBs [io1,gp2]",
-            "Default": "gp2",
+            "Description": "EBS Volume Type (data) to be attached to node in GBs [sc1,gp2]",
+            "Default": "sc1",
             "AllowedValues": [
                 "gp2",
-                "io1"
+                "st1",
+                "sc1"
             ]
         },
         "MountPoint" : {
@@ -243,7 +244,12 @@
         "SnapshotStack": {
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {
-            	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/ebs-snapshot-scheduler.template"]] }
+            	"TemplateURL": {
+                    "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/ebs-snapshot-scheduler.template"]] 
+                },
+                "PolicyDDBTableName": {
+                    "Fn::Join" : ["", ["Scheduler-EBS-Snapshot-Policy-", { "Ref": "EcsCluster" } ] ] 
+                }
             }
         },
         "VPCStack": {

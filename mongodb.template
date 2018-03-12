@@ -172,15 +172,16 @@
         "VolumeSize": {
             "Type": "String",
             "Description": "EBS Volume Size (data) to be attached to node in GBs",
-            "Default": "400"
+            "Default": "5"
         },
         "VolumeType": {
             "Type": "String",
             "Description": "EBS Volume Type (data) to be attached to node in GBs [io1,gp2]",
-            "Default": "gp2",
+            "Default": "sc1",
             "AllowedValues": [
                 "gp2",
-                "io1"
+                "st1",
+                "sc1"
             ]
         },
         "Iops": {

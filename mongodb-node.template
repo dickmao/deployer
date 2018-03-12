@@ -90,15 +90,16 @@
         "VolumeSize": {
             "Type": "String",
             "Description": "EBS Volume Size (data) to be attached to node in GBs",
-            "Default": "400"
+            "Default": "5"
         },
         "VolumeType": {
             "Type": "String",
             "Description": "EBS Volume Type (data) to be attached to node in GBs [io1,gp2]",
-            "Default": "gp2",
+            "Default": "sc1",
             "AllowedValues": [
                 "gp2",
-                "io1"
+                "sc1",
+                "st1"
             ]
         },
         "Iops": {
@@ -332,12 +333,13 @@
                                 "Fn::If": [
                                     "SnapshotExtant",
                                     { "Ref": "AWS::NoValue" },
-                                    { "Ref": "VolumeSize" }
+                                    2
                                 ]
                             },
-                            "VolumeType": "io1",
-                            "DeleteOnTermination": "true",
-                            "Iops": "250"
+                            "VolumeType": {
+                                "Ref": "VolumeType"
+                            },
+                            "DeleteOnTermination": "true"
                         }
                     },
                     {
@@ -354,12 +356,13 @@
                                 "Fn::If": [
                                     "SnapshotExtant",
                                     { "Ref": "AWS::NoValue" },
-                                    { "Ref": "VolumeSize" }
+                                    2
                                 ]
                             },
-                            "VolumeType": "io1",
-                            "DeleteOnTermination": "true",
-                            "Iops": "200"
+                            "VolumeType": {
+                                "Ref": "VolumeType"
+                            },
+                            "DeleteOnTermination": "true"
                         }
                     }
                 ],

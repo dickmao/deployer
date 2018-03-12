@@ -1,5 +1,18 @@
 #!/bin/bash -exu
 
+while [[ $# -gt 0 ]] ; do
+  key="$1"
+  case "$key" in
+      --nosnap)
+      shift
+      nosnap=1
+      ;;
+      *)
+      break
+      ;;    
+  esac
+done
+
 source $(dirname $0)/ecs-utils.sh
 
 function clean_state {
@@ -28,9 +41,9 @@ for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK 
   aws s3 rm s3://$bucket/ --recursive || true
 done
 
-function render {
-    python ${wd}/ebs-snapshot-scheduler.py
-}
+if [ -z ${nosnap:-} ]; then
+  python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
+fi
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(

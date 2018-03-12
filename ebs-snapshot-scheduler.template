@@ -37,7 +37,6 @@
         "PolicyDDBTableName": {
             "Description": "Policy DynamoDB Table Name",
             "Type": "String",
-            "Default": "Scheduler-EBS-Snapshot-Policy"
         },
         "ReadCapacityUnits": {
             "ConstraintDescription": "should be between 5 and 10000",

@@ -68,7 +68,7 @@ def purge_history(region, custom_tag_name, retention_days, dry=False):
             try:
                 response = snap.delete(DryRun=dry)
                 if response['ResponseMetadata']['HTTPStatusCode'] == 200:
-                    logger.info("Successfully deleted {} ({} seconds old)".format(snap.id, delta.seconds))
+                    logger.info("Deleted {} ({} seconds old)".format(snap.id, delta.seconds))
                 else:
                     logger.error("Failed delete {} ({} seconds old)".format(snap.id, delta.seconds))
             except botocore.exceptions.ClientError:
@@ -167,7 +167,7 @@ if __name__ == "__main__":
     item = policy_table.get_item(Key={ 'SolutionName': 'EbsSnapshotScheduler' })['Item']
     custom_tag_name = str(item['CustomTagName'])
 
-    purge_history(args.region, custom_tag_name, 0, not args.nodry)
+    purge_history(args.region, custom_tag_name, 1, not args.nodry)
 
     for instance in boto3.resource('ec2', region_name=args.region).instances.filter(Filters=[{ 'Name': 'tag-key', 'Values': [ custom_tag_name ] }]):
         backup_instance(instance, args.region, custom_tag_name, not args.nodry)

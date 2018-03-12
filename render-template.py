@@ -32,11 +32,15 @@ jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(wdir),
 
 def aws_snapshot_of(name, device):
     ec2_resource = boto3.resource('ec2', region_name=args.region)
-    snaps = ec2_resource.snapshots.filter(Filters=[
+    snaps = sorted(ec2_resource.snapshots.filter(Filters=[
         { 'Name': 'tag:Name','Values': [name] },
         { 'Name': 'tag:Device','Values': [device] },
-    ])
-    return next((x.id for x in snaps), "")
+    ]), key=lambda snap: snap.start_time)
+
+    try:
+        return snaps[-1].id
+    except IndexError:
+        return ""
 
 jinja_env.filters['aws_snapshot_of'] = aws_snapshot_of
 for template in args.template:

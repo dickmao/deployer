@@ -3,7 +3,7 @@
 function finish {
   if [ $? != 0 ]; then
     if [ ! -z "$(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[]')" ] ; then
-      ${wd}/ecs-down.sh $VERNUM
+      ${wd}/ecs-down.sh --nosnap $VERNUM
     fi
   fi
 }
