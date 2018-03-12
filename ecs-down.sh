@@ -18,6 +18,8 @@ if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
   exit 0
 fi
 
+
+
 TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
 if [ "$TASKDEF" != "null" ]; then
   aws ecs deregister-task-definition --task-definition $TASKDEF
@@ -26,6 +28,9 @@ for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK 
   aws s3 rm s3://$bucket/ --recursive || true
 done
 
+function render {
+    python ${wd}/ebs-snapshot-scheduler.py
+}
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(

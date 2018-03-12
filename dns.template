@@ -240,6 +240,12 @@
         }
     },
     "Resources" : {
+        "SnapshotStack": {
+            "Type": "AWS::CloudFormation::Stack",
+            "Properties": {
+            	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/ebs-snapshot-scheduler.template"]] }
+            }
+        },
         "VPCStack": {
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {

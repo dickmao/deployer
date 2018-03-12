@@ -10,7 +10,7 @@
         "DefaultRetentionDays": {
             "Description": "Default Retention Period (number of days)",
             "Type": "String",
-            "Default": "15"
+            "Default": "1"
         },
         "CustomTagName": {
             "Description": "Custom Tag Name",
@@ -20,11 +20,11 @@
         "DefaultDaysActive": {
             "Description": "Enter 'all', 'weekdays', or any combination of days ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', or 'sun') comma separated",
             "Type": "String",
-            "Default": "all"
+            "Default": "sat"
         },
         "DefaultTimeZone": {
             "Type": "String",
-            "Default": "UTC",
+            "Default": "US/Eastern",
             "AllowedValues": [
                 "America/Los_Angeles",
                 "America/New_York",
@@ -33,11 +33,6 @@
                 "UTC"
             ],
             "Description": "Choose the default Time Zone. Default is 'UTC'"
-        },
-        "HistoryDDBTableName": {
-            "Description": "History DynamoDB Table Name",
-            "Type": "String",
-            "Default": "Scheduler-EBS-Snapshot-History"
         },
         "PolicyDDBTableName": {
             "Description": "Policy DynamoDB Table Name",
@@ -115,7 +110,6 @@
                     },
                     "Parameters": [
                         "PolicyDDBTableName",
-                        "HistoryDDBTableName",
                         "ReadCapacityUnits",
                         "WriteCapacityUnits"
                     ]
@@ -184,34 +178,6 @@
                                                 ":table/",
                                                 {
                                                     "Ref": "PolicyDDBTableName"
-                                                }
-                                            ]
-                                        ]
-                                    }
-                                },
-                                {
-                                    "Effect": "Allow",
-                                    "Action": [
-                                        "dynamodb:GetItem",
-                                        "dynamodb:PutItem",
-                                        "dynamodb:DeleteItem",
-                                        "dynamodb:Scan"
-                                    ],
-                                    "Resource": {
-                                        "Fn::Join": [
-                                            "",
-                                            [
-                                                "arn:aws:dynamodb:",
-                                                {
-                                                    "Ref": "AWS::Region"
-                                                },
-                                                ":",
-                                                {
-                                                    "Ref": "AWS::AccountId"
-                                                },
-                                                ":table/",
-                                                {
-                                                    "Ref": "HistoryDDBTableName"
                                                 }
                                             ]
                                         ]
@@ -292,34 +258,6 @@
                 },
                 "TableName": {
                     "Ref": "PolicyDDBTableName"
-                }
-            },
-            "Type": "AWS::DynamoDB::Table"
-        },
-        "CreateHistoryDDB": {
-            "Properties": {
-                "AttributeDefinitions": [
-                    {
-                        "AttributeName": "snapshot_id",
-                        "AttributeType": "S"
-                    }
-                ],
-                "KeySchema": [
-                    {
-                        "AttributeName": "snapshot_id",
-                        "KeyType": "HASH"
-                    }
-                ],
-                "ProvisionedThroughput": {
-                    "ReadCapacityUnits": {
-                        "Ref": "ReadCapacityUnits"
-                    },
-                    "WriteCapacityUnits": {
-                        "Ref": "WriteCapacityUnits"
-                    }
-                },
-                "TableName": {
-                    "Ref": "HistoryDDBTableName"
                 }
             },
             "Type": "AWS::DynamoDB::Table"
@@ -555,12 +493,6 @@
             "Description": "Policy DynamoDB Table Name",
             "Value": {
                 "Ref": "PolicyDDBTableName"
-            }
-        },
-        "HistoryDDBTableName": {
-            "Description": "DynamoDB Table Name",
-            "Value": {
-                "Ref": "HistoryDDBTableName"
             }
         }
     }
