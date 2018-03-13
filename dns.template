@@ -173,7 +173,7 @@
         "VolumeType": {
             "Type": "String",
             "Description": "EBS Volume Type (data) to be attached to node in GBs [sc1,gp2]",
-            "Default": "sc1",
+            "Default": "gp2",
             "AllowedValues": [
                 "gp2",
                 "st1",
@@ -247,17 +247,17 @@
             	"TemplateURL": {
                     "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/ebs-snapshot-scheduler.template"]] 
                 },
-                "PolicyDDBTableName": {
-                    "Fn::Join" : ["", ["Scheduler-EBS-Snapshot-Policy-", { "Ref": "EcsCluster" } ] ] 
+                "Parameters": {
+                    "PolicyDDBTableName": {
+                        "Fn::Join" : ["", ["Scheduler-EBS-Snapshot-Policy-", { "Ref": "EcsCluster" } ] ] 
+                    }
                 }
             }
         },
         "VPCStack": {
             "Type": "AWS::CloudFormation::Stack",
             "Properties": {
-                "TemplateURL": {
-                    "Fn::Sub": "https://${QSS3BucketName}.s3.amazonaws.com/${QSS3KeyPrefix}submodules/quickstart-aws-vpc/templates/aws-vpc.template"
-                },
+            	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/aws-vpc.template"]]},
                 "Parameters": {
                     "AvailabilityZones": {
                         "Fn::Join": [

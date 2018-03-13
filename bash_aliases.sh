@@ -226,6 +226,22 @@ function awslog2 {
   done
 }
 
+function unset_clustersvc2ip {
+  local cluster
+  local svc
+  svc=$1
+  cluster=$(get-cluster $2)
+  sgroup=${svc%%-*}
+
+  for k in "${!clustersvc2ip[@]}" ; do
+    K=${k##*:}
+    if [ "x${K%%-*}" == "x$sgroup" ]; then
+      echo deleting $k
+      unset clustersvc2ip["$k"]
+    fi
+  done
+}
+
 function q_cluster_changed {
   local cluster
   local idx
@@ -326,6 +342,7 @@ function ssh-ecs {
     clustersvc2ip["${cluster}:${svc}"]=$ip
     ssh-my $ip $cmd
   else
+    # parent variables like clustersvc2ip don't get updated in subshells
     ip=$(get-ip-for-svc $svc $cluster)
     clustersvc2ip["${cluster}:${svc}"]=$ip
     if [ ! -z $ip ]; then

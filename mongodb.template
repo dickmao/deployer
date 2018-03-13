@@ -177,7 +177,7 @@
         "VolumeType": {
             "Type": "String",
             "Description": "EBS Volume Type (data) to be attached to node in GBs [io1,gp2]",
-            "Default": "sc1",
+            "Default": "gp2",
             "AllowedValues": [
                 "gp2",
                 "st1",
@@ -444,7 +444,7 @@
                 ]
             }
         },
-        "PrimaryReplicaNode0WaitForNodeInstallWaitHandle": {
+        "{{ primary_replica_node_name }}WaitForNodeInstallWaitHandle": {
             "Type": "AWS::CloudFormation::WaitConditionHandle",
             "Properties": {}
         },

@@ -95,7 +95,7 @@
         "VolumeType": {
             "Type": "String",
             "Description": "EBS Volume Type (data) to be attached to node in GBs [io1,gp2]",
-            "Default": "sc1",
+            "Default": "gp2",
             "AllowedValues": [
                 "gp2",
                 "sc1",
@@ -229,6 +229,20 @@
                                     "Ref": "MongoDBAdminPassword"
                                 },
                                 "mode": "000440",
+                                "owner": "root",
+                                "group": "root"
+                            },
+                            "/home/ec2-user/.mongorc.js": {
+                                "content": { "Fn::Join": ["", [
+                                    "prompt = function() {\n",
+                                    "    user = db.runCommand({connectionStatus : 1}).authInfo.authenticatedUsers[0]\n",
+                                    "    if (user) {\n",
+                                    "        return \"user: \" + user.user + \"> \"\n",
+                                    "    }\n",
+                                    "    return \"> \"\n",
+                                    "}\n"
+                                    ] ] },
+                                "mode": "000644",
                                 "owner": "root",
                                 "group": "root"
                             }
