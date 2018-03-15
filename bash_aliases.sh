@@ -120,7 +120,7 @@ function ssh-mongo {
     CLUSTER=$cluster scp-ecs $HOME/.ssh/id_rsa .ssh/
     # FIXME needs to be by cluster
     local mongo
-    mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r '.Reservations[0] | .Instances[0] | .PrivateIpAddress')
+    mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r '.Reservations[] | select(.Instances[] | select(.State.Code==16))| .Instances[-1] | .PrivateIpAddress ')
     clustersvc2ip["${cluster}:mongo"]=$mongo
     CLUSTER=$cluster ssh-ecs 0 ssh ${clustersvc2ip["${cluster}:mongo"]}
 }

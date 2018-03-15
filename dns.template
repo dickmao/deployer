@@ -267,6 +267,9 @@
                             }
                         ]
                     },
+                    "EcsCluster": {
+                        "Ref": "EcsCluster"
+                    },
                     "KeyPairName": {
                         "Ref": "KeyName"
                     },

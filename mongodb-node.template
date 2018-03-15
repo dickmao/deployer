@@ -517,7 +517,7 @@
                                 },
                                 " >> config.sh\n",
                                 "mkdir -p /mongo_auth \n",
-                                "./init.sh > install.log 2>&1 \n",
+                                "# ./init.sh > install.log 2>&1 \n",
                                 "#  Cleanup \n",
                                 "#rm -rf *\n",
                                 "chown -R ec2-user:ec2-user /home/ec2-user/ \n",

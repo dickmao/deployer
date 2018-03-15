@@ -41,6 +41,7 @@
                         "default": "Amazon EC2 Configuration"
                     },
                     "Parameters": [
+                        "EcsCluster",
                         "KeyPairName",
                         "NATInstanceType"
                     ]
@@ -55,6 +56,9 @@
                 },
                 "CreatePrivateSubnets": {
                     "default": "Create private subnets"
+                },
+                "EcsCluster": {
+                    "default": "ECS cluster"
                 },
                 "KeyPairName": {
                     "default": "Key pair name"
@@ -131,6 +135,10 @@
             ],
             "Default": "true",
             "Description": "Set to false to create only public subnets. If false, the CIDR parameters for ALL private subnets will be ignored.",
+            "Type": "String"
+        },
+        "EcsCluster": {
+            "Description": "Name of ECS cluster used to tag NAT gateways for decomissioning.",
             "Type": "String"
         },
         "KeyPairName": {
@@ -358,13 +366,6 @@
         "NATGatewayCondition": {
             "Fn::And": [
                 {
-                    "Fn::Not": [
-                        {
-                            "Condition": "PrivateSubnetsCondition"
-                        }
-                    ]
-                },
-                {
                     "Condition": "PrivateSubnetsCondition"
                 },
                 {
@@ -373,13 +374,6 @@
                             "Condition": "GovCloudCondition"
                         }
                     ]
-                }
-            ]
-        },
-        "NotNATGatewayCondition": {
-            "Fn::Not": [
-                {
-                    "Condition": "NATGatewayCondition"
                 }
             ]
         },
@@ -966,17 +960,6 @@
                     "Ref": "PrivateSubnet1ARouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1040,17 +1023,6 @@
                     "Ref": "PrivateSubnet2ARouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1114,17 +1086,6 @@
                     "Ref": "PrivateSubnet3ARouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1188,17 +1149,6 @@
                     "Ref": "PrivateSubnet4ARouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1262,17 +1212,6 @@
                     "Ref": "PrivateSubnet1BRouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1395,17 +1334,6 @@
                     "Ref": "PrivateSubnet2BRouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1528,17 +1456,6 @@
                     "Ref": "PrivateSubnet3BRouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1661,17 +1578,6 @@
                     "Ref": "PrivateSubnet4BRouteTable"
                 },
                 "DestinationCidrBlock": "0.0.0.0/0",
-                "GatewayId" : {
-                    "Fn::If": [ 
-                        "NotNATGatewayCondition",
-                        {
-                            "Ref" : "InternetGateway"
-                        },
-                        {
-                            "Ref": "AWS::NoValue"
-                        }
-                    ]
-                },
                 "InstanceId": {
                     "Fn::If": [
                         "NATInstanceCondition",
@@ -1845,7 +1751,7 @@
             }
         },
         "NAT1EIP": {
-            "Condition": "NATGatewayCondition",
+            "Condition": "PrivateSubnetsCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -1864,7 +1770,7 @@
             }
         },
         "NAT2EIP": {
-            "Condition": "NATGatewayCondition",
+            "Condition": "PrivateSubnetsCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -1883,7 +1789,7 @@
             }
         },
         "NAT3EIP": {
-            "Condition": "NATGateway&3AZCondition",
+            "Condition": "PrivateSubnets&3AZCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -1902,7 +1808,7 @@
             }
         },
         "NAT4EIP": {
-            "Condition": "NATGateway&4AZCondition",
+            "Condition": "PrivateSubnets&4AZCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -1933,7 +1839,15 @@
                 },
                 "SubnetId": {
                     "Ref": "PublicSubnet1"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": "EcsCluster",
+                        "Value": {
+                            "Ref": "EcsCluster"
+                        }
+                    }
+                ]
             }
         },
         "NATGateway2": {
@@ -1949,7 +1863,15 @@
                 },
                 "SubnetId": {
                     "Ref": "PublicSubnet2"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": "EcsCluster",
+                        "Value": {
+                            "Ref": "EcsCluster"
+                        }
+                    }
+                ]
             }
         },
         "NATGateway3": {
@@ -1965,7 +1887,15 @@
                 },
                 "SubnetId": {
                     "Ref": "PublicSubnet3"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": "EcsCluster",
+                        "Value": {
+                            "Ref": "EcsCluster"
+                        }
+                    }
+                ]
             }
         },
         "NATGateway4": {
@@ -1981,7 +1911,15 @@
                 },
                 "SubnetId": {
                     "Ref": "PublicSubnet4"
-                }
+                },
+                "Tags": [
+                    {
+                        "Key": "EcsCluster",
+                        "Value": {
+                            "Ref": "EcsCluster"
+                        }
+                    }
+                ]
             }
         },
         "NATInstance1": {
@@ -2321,7 +2259,7 @@
     },
     "Outputs": {
         "NAT1EIP": {
-            "Condition": "NATGatewayCondition",
+            "Condition": "PrivateSubnetsCondition",
             "Description": "NAT 1 IP address",
             "Value": {
                 "Ref": "NAT1EIP"
@@ -2333,7 +2271,7 @@
             }
         },
         "NAT2EIP": {
-            "Condition": "NATGatewayCondition",
+            "Condition": "PrivateSubnetsCondition",
             "Description": "NAT 2 IP address",
             "Value": {
                 "Ref": "NAT2EIP"
@@ -2345,7 +2283,7 @@
             }
         },
         "NAT3EIP": {
-            "Condition": "NATGateway&3AZCondition",
+            "Condition": "PrivateSubnets&3AZCondition",
             "Description": "NAT 3 IP address",
             "Value": {
                 "Ref": "NAT3EIP"
@@ -2357,7 +2295,7 @@
             }
         },
         "NAT4EIP": {
-            "Condition": "NATGateway&4AZCondition",
+            "Condition": "PrivateSubnets&4AZCondition",
             "Description": "NAT 4 IP address",
             "Value": {
                 "Ref": "NAT4EIP"

@@ -1,0 +1,3 @@
+[submodule "quickstart-mongodb"]
+	path = quickstart-mongodb
+	url = git@github.com:dickmao/quickstart-mongodb.git

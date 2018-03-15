@@ -127,3 +127,26 @@ for tgarn in $tgarns; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
     aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
 done
+
+# save some dough
+nats=""
+eips=""
+IFS=$'\n'
+for nateips in $(aws ec2 describe-nat-gateways --filter "Name=tag:EcsCluster,Values=$STACK" "Name=state,Values=pending,failed,available,deleting" | jq -rc '.NatGateways[] | "\(.NatGatewayId) \(.NatGatewayAddresses | map(.AllocationId) | .[]) " '); do
+    nat=${nateips%% *}
+    eips="$eips ${nateips#* }"
+    nats="$nats $nat"
+    aws ec2 delete-nat-gateway --nat-gateway-id $nat
+done
+unset IFS
+
+inprog=0
+while [ $inprog -lt 25 ] && aws ec2 describe-nat-gateways --nat-gateway-ids $nats | jq -r '.NatGateways[] | .State' | grep -v deleted ; do
+    echo Waiting for $nats to be deleted
+    let inprog=inprog+1
+    sleep 10
+done
+
+for eip in $eips; do 
+    aws ec2 release-address --allocation-id $eip
+done
