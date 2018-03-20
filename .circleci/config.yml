@@ -114,9 +114,8 @@ jobs:
           paths:
             - "*"
 
-workflows:
-  version: 2
-  gamut:
+references:
+  jobs-gamut: &jobs-gamut
     jobs:
       - build-deployer-image
       - build-ecscli
@@ -133,3 +132,17 @@ workflows:
       - ecs-down:
           requires:
             - ecs-compose-down
+
+
+workflows:
+  version: 2
+  commit:
+    <<: *jobs-gamut
+  scheduled-workflow:
+    triggers:
+      - schedule:
+          cron: "30 13 * * *"
+          filters:
+            branches:
+              only: master
+    <<: *jobs-gamut
