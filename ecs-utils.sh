@@ -1,6 +1,6 @@
 #!/bin/bash -eu
 
-if [ ! aws configure get region ]; then
+if ! aws configure get region; then
   aws configure set region ${AWS_REGION}
 fi
 

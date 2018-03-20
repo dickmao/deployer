@@ -61,10 +61,10 @@ containsElement () {
   return 1
 }
 
-ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
-REGION=$(aws configure get region)
 wd=$(dirname $0)
 source ${wd}/ecs-utils.sh 0
+ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
+REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
   set_circleci_user_vernum
 else
