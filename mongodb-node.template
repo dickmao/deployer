@@ -151,20 +151,6 @@
             "Description": "Pre-signed Wait Handle URL to send signal for associated wait condition",
             "Type": "String"
         },
-        "QSS3BucketName": {
-            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
-            "Default": "quickstart-reference",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
-            "Description": "S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
-        },
-        "QSS3KeyPrefix": {
-            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
-            "Default": "mongodb/latest/",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
-            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with a hyphen (-)."
-        },
         "HostedZoneName": {
             "Type": "String",
             "Description": "Service discovery subdomain e.g., ecs-dick-0002.internal"
@@ -400,43 +386,27 @@
                                 "cd /home/ec2-user/mongodb \n",
                                 "aws s3 cp s3://",
                                 {
-                                    "Ref": "QSS3BucketName"
+                                    "Ref": "AWS::AccountId"
                                 },
-                                "/",
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts/orchestrator.sh orchestrator.sh\n",
+                                ".ecs-up/quickstart-mongodb/scripts/orchestrator.sh orchestrator.sh\n",
                                 "chmod +x orchestrator.sh \n",
                                 "aws s3 cp s3://",
                                 {
-                                    "Ref": "QSS3BucketName"
+                                    "Ref": "AWS::AccountId"
                                 },
-                                "/",
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts/disable-transparent-hugepages /etc/init.d/disable-transparent-hugepages\n",
+                                ".ecs-up/quickstart-mongodb/scripts/disable-transparent-hugepages /etc/init.d/disable-transparent-hugepages\n",
                                 "chmod +x /etc/init.d/disable-transparent-hugepages \n",
                                 "chkconfig --add disable-transparent-hugepages \n",
                                 "aws s3 cp s3://",
                                 {
-                                    "Ref": "QSS3BucketName"
+                                    "Ref": "AWS::AccountId"
                                 },
-                                "/",
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts/init_replica.sh init.sh\n",
+                                ".ecs-up/quickstart-mongodb/scripts/init_replica.sh init.sh\n",
                                 "aws s3 cp s3://",
                                 {
-                                    "Ref": "QSS3BucketName"
+                                    "Ref": "AWS::AccountId"
                                 },
-                                "/",
-                                {
-                                    "Ref": "QSS3KeyPrefix"
-                                },
-                                "scripts/signalFinalStatus.sh signalFinalStatus.sh\n",
+                                ".ecs-up/quickstart-mongodb/scripts/signalFinalStatus.sh signalFinalStatus.sh\n",
                                 "chmod +x signalFinalStatus.sh \n",
                                 "chmod +x init.sh \n",
 
@@ -517,10 +487,8 @@
                                 },
                                 " >> config.sh\n",
                                 "mkdir -p /mongo_auth \n",
-                                "# ./init.sh > install.log 2>&1 \n",
-                                "#  Cleanup \n",
-                                "#rm -rf *\n",
                                 "chown -R ec2-user:ec2-user /home/ec2-user/ \n",
+                                "./init.sh > install.log 2>&1 \n",
                                 "/home/ec2-user/mongodb/signalFinalStatus.sh 0\n"
                             ]
                         ]

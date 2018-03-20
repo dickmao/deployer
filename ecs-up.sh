@@ -19,7 +19,15 @@ function render {
     python ${wd}/render-template.py --region $REGION --outdir /var/tmp "$@"
 }
 
+function s3_publish {
+    local what
+    what=$1
+    s3cmd mb  s3://${ACCOUNT}.ecs-up --region $REGION 2> /dev/null || [ $? == 13 ]
+    s3cmd sync --delete-removed ${wd}/quickstart-mongodb s3://${ACCOUNT}.ecs-up/
+}
+
 function refresh_templates {
+    local base
     base=$1
     s3cmd mb  s3://${ACCOUNT}.templates --region $REGION 2> /dev/null || [ $? == 13 ]
     render $base
@@ -83,6 +91,7 @@ if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
 fi
 
 TEMPLATE="${wd}/dns.template"
+s3_publish "quickstart-mongodb"
 refresh_templates $TEMPLATE
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"

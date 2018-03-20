@@ -109,20 +109,6 @@
             "Type": "String",
             "Default": "0"
         },
-        "QSS3BucketName": {
-            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
-            "Default": "quickstart-reference",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
-            "Description": "S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
-        },
-        "QSS3KeyPrefix": {
-            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
-            "Default": "mongodb/latest/",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
-            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with a hyphen (-)."
-        },
         "EcsAmiId": {
           "Type": "String",
           "Description": "ECS EC2 AMI id",
@@ -240,6 +226,7 @@
           }
         }
     },
+
     "Resources" : {
         "SnapshotStack": {
             "Type": "AWS::CloudFormation::Stack",
@@ -305,12 +292,6 @@
             "Properties": {
             	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb.template"]]},
                 "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
                     "ClusterReplicaSetCount": {
                         "Ref": "ClusterReplicaSetCount"
                     },
@@ -1146,8 +1127,6 @@
           "Properties": {
           }
         },
-
-
         "BucketPolicy" : {
           "Type" : "AWS::S3::BucketPolicy",
           "Properties" : {

@@ -36,7 +36,7 @@
         },
         "PolicyDDBTableName": {
             "Description": "Policy DynamoDB Table Name",
-            "Type": "String",
+            "Type": "String"
         },
         "ReadCapacityUnits": {
             "ConstraintDescription": "should be between 5 and 10000",

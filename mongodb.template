@@ -40,15 +40,6 @@
                         "VolumeSize",
                         "VolumeType"
                     ]
-                },
-                {
-                    "Label": {
-                        "default": "AWS Quick Start Configuration"
-                    },
-                    "Parameters": [
-                        "QSS3BucketName",
-                        "QSS3KeyPrefix"
-                    ]
                 }
             ],
             "ParameterLabels": {
@@ -75,12 +66,6 @@
                 },
                 "PrimaryNodeSubnet": {
                     "default": "Primary Node Subnet"
-                },
-                "QSS3BucketName": {
-                    "default": "Quick Start S3 Bucket Name"
-                },
-                "QSS3KeyPrefix": {
-                    "default": "Quick Start S3 Key Prefix"
                 },
                 "ReplicaShardIndex": {
                     "default": "Replica Shard Index"
@@ -149,20 +134,6 @@
             "Description": "Shard Index of this replica set",
             "Type": "String",
             "Default": "0"
-        },
-        "QSS3BucketName": {
-            "AllowedPattern": "^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$",
-            "Default": "quickstart-reference",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-).",
-            "Description": "S3 bucket name for the Quick Start assets. Quick Start bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen (-)."
-        },
-        "QSS3KeyPrefix": {
-            "AllowedPattern": "^[0-9a-zA-Z-/]*$",
-            "Default": "mongodb/latest/",
-            "Type": "String",
-            "ConstraintDescription": "Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/).",
-            "Description": "S3 key prefix for the Quick Start assets. Quick Start key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slash (/). It cannot start or end with a hyphen (-)."
         },
         "KeyPairName": {
             "Type": "AWS::EC2::KeyPair::KeyName",
@@ -454,12 +425,6 @@
             "Properties": {
             	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb-node.template"]]},
                 "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
                     "ClusterReplicaSetCount": {
                         "Ref": "ClusterReplicaSetCount"
                     },
@@ -538,7 +503,7 @@
                 "Handle": {
                     "Ref": "{{ primary_replica_node_name }}WaitForNodeInstallWaitHandle"
                 },
-                "Timeout": "3600"
+                "Timeout": "600"
             }
         },
         "SecondaryReplicaNode0WaitForNodeInstallWaitHandle": {
@@ -553,12 +518,6 @@
             "Properties": {
             	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb-node.template"]]},
                 "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
                     "ClusterReplicaSetCount": {
                         "Ref": "ClusterReplicaSetCount"
                     },
@@ -647,12 +606,6 @@
             "Properties": {
             	"TemplateURL": { "Fn::Join" : ["", ["https://s3.amazonaws.com/", {"Ref":"AWS::AccountId"}, ".templates/mongodb-node.template"]]},
                 "Parameters": {
-                    "QSS3BucketName": {
-                        "Ref": "QSS3BucketName"
-                    },
-                    "QSS3KeyPrefix": {
-                        "Ref": "QSS3KeyPrefix"
-                    },
                     "ClusterReplicaSetCount": {
                         "Ref": "ClusterReplicaSetCount"
                     },
