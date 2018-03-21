@@ -130,10 +130,6 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
       - run: |
           set -ex
           ./ecs-compose-down.sh -s dedupe
@@ -150,10 +146,6 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
       - run: |
           set -ex
           ./ecs-compose-down.sh -s play
@@ -165,10 +157,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
       - run: |
           set -ex
           source ./bash_aliases.sh
@@ -181,10 +169,6 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
       - run: |
           set -ex
           source ./bash_aliases.sh
@@ -204,10 +188,6 @@ jobs:
           set -ex
           source bash_aliases.sh
           ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest ./dedupe-on-demand.sh 1
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
 
   success-function:
     docker:
@@ -223,10 +203,6 @@ jobs:
           set -ex
           source ./bash_aliases.sh
           ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT bin/success-function
-      - persist_to_workspace:
-          root: ecs-state
-          paths:
-            - "*"
 
   ecs-compose-down:
     docker:
