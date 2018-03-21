@@ -716,7 +716,10 @@
                           "/home/ec2-user/.bash_aliases" : {
                              "content" : { "Fn::Join" : [ "", [
                                "function docke {\n",
-                               "  docker exec -ti $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$1\") sh\n",
+                               "  svc=\"$1\"\n",
+                               "  shift\n",
+                               "  cmd=\"${@:-sh}\"\n",
+                               "  docker exec -ti $(docker ps -qla -f \"label=com.amazonaws.ecs.container-name=$svc\") $cmd\n",
                                "}\n",
                                "function dockl {\n",
                                "  tail=''\n",

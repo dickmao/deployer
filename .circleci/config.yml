@@ -1,4 +1,47 @@
 version: 2
+references:
+  # sepp2k no way for array to contain anchor steps and additional steps
+
+  jobs-gamut: &jobs-gamut
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-up:
+          requires:
+            - build-deployer-image
+            - build-ecscli
+      - ecs-compose-up:
+          requires:
+            - ecs-up
+      - stop-dedupe:
+          requires:
+            - ecs-compose-up
+      - stop-play:
+          requires:
+            - ecs-compose-up
+      - spider-newyork:
+          requires:
+            - stop-dedupe
+            - stop-play
+      - spider-listingsproject:
+          requires:
+            - stop-dedupe
+            - stop-play
+      - dedupe:
+          requires:
+            - spider-newyork
+            - spider-listingsproject
+      - success-function:
+          requires:
+            - dedupe
+      - ecs-compose-down:
+          requires:
+            - success-function
+      - ecs-down:
+          requires:
+            - ecs-compose-down
+
+
 jobs:
   build-deployer-image:
     docker:
@@ -55,7 +98,6 @@ jobs:
           root: ecs-state
           paths:
             - "*"
-
   ecs-compose-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -71,6 +113,116 @@ jobs:
       - run: |
           set -ex
           ./ecs-compose-up.sh
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+
+  stop-dedupe:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+      - run: |
+          set -ex
+          ./ecs-compose-down.sh -s dedupe
+
+  stop-play:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+      - run: |
+          set -ex
+          ./ecs-compose-down.sh -s play
+
+  spider-newyork:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+      - run: |
+          set -ex
+          source ./bash_aliases.sh
+          docke-ecs scrapyd-crawl schedule newyork
+  
+  spider-listingsproject: 
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+      - run: |
+          set -ex
+          source ./bash_aliases.sh
+          docke-ecs scrapyd-crawl schedule listingsproject
+
+  dedupe:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run: |
+          set -ex
+          source bash_aliases.sh
+          ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest ./dedupe-on-demand.sh 1
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+
+  success-function:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run: |
+          set -ex
+          source ./bash_aliases.sh
+          ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT bin/success-function
       - persist_to_workspace:
           root: ecs-state
           paths:
@@ -113,26 +265,6 @@ jobs:
           root: ecs-state
           paths:
             - "*"
-
-references:
-  jobs-gamut: &jobs-gamut
-    jobs:
-      - build-deployer-image
-      - build-ecscli
-      - ecs-up:
-          requires:
-            - build-deployer-image
-            - build-ecscli
-      - ecs-compose-up:
-          requires:
-            - ecs-up
-      - ecs-compose-down:
-          requires:
-            - ecs-compose-up
-      - ecs-down:
-          requires:
-            - ecs-compose-down
-
 
 workflows:
   version: 2

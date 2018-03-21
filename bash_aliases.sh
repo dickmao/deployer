@@ -53,7 +53,7 @@ function lambdalogs {
 function cloudtrails {
   farback=${1:-20 minutes ago}
   cluster=$(get-cluster $2)
-  id=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-$cluster| jq -r '.StackResources[] | select(.ResourceType=="AWS::S3::Bucket") | .PhysicalResourceId '  )
+  id=$(aws cloudformation describe-stack-resources --stack-name ecs-$(whoami)-$cluster| jq -r '.StackResources[] | select(.ResourceType=="AWS::S3::Bucket") | .PhysicalResourceId '  )
   rm -rf ~/.trailscraper/*
   TZ=US/Eastern trailscraper download --bucket  $id  --region us-east-2 --region us-east-1 --from "'$farback'" --to "now" --account-id 303634175659
   skan ~/.trailscraper | awk {'print $4'} | xargs zcat | jq -r '.Records[]' | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
@@ -126,7 +126,7 @@ function ssh-mongo {
 }
 
 function ssh-my() {
-    ssh -x -o StrictHostKeyChecking=no -ti ~/.ssh/id_rsa ec2-user@$*
+    ssh -x -o StrictHostKeyChecking=no -t ec2-user@$*
 }
 
 function export_from_config() {
@@ -180,7 +180,7 @@ function get-cluster {
   cluster=$1
   if [ -z $cluster ]; then
     if [ -z $CLUSTER ]; then
-      cluster=$(cd ~/aws/ecs-state ; ls -1 [0-9][0-9][0-9][0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
+      cluster=$(cd ~/*/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
     else
       cluster=$CLUSTER
     fi
@@ -206,7 +206,6 @@ function scp-ecs {
   done
 }
 
-alias minecraft="java -jar /usr/share/minecraft/minecraft.jar"
 function awslog {
   aws logs get-log-events --log-group-name "/aws/batch/job" --log-stream-name $(aws logs describe-log-streams --log-group-name "/aws/batch/job" --descending --order-by LastEventTime --max-items 10 | jq -r ' .logStreams[] | .logStreamName ' | grep $1 | head -1 ) --no-start-from-head | jq -r ' .events | .[].message '
 }
@@ -267,7 +266,7 @@ function get-ip-for-index {
     echo ${clustersvc2ip["${cluster}:${svc}"]}
     return
   fi
-  ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-dick-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-dick-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+  ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-$(whoami)-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-$(whoami)-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
   clustersvc2ip["${cluster}:${svc}"]=$ip
   echo $ip
 }
@@ -282,14 +281,14 @@ function get-ip-for-svc {
     return
   fi
 
-  for arn in $(aws ecs list-tasks --cluster ecs-dick-$cluster | jq -r '.taskArns[] ') ; do 
-    group_inst=$(aws ecs describe-tasks --cluster ecs-dick-$cluster --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
+  for arn in $(aws ecs list-tasks --cluster ecs-$(whoami)-$cluster | jq -r '.taskArns[] ') ; do 
+    group_inst=$(aws ecs describe-tasks --cluster ecs-$(whoami)-$cluster --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
     group=${group_inst%% *}
     group=${group##*:}
     group=${group%%-*}
     inst=${group_inst##* }
     if [ $group == $sgroup ] ; then 
-      ec2=$(aws ecs describe-container-instances --cluster ecs-dick-$cluster --container-instances $inst | jq -r '.containerInstances[] | .ec2InstanceId')
+      ec2=$(aws ecs describe-container-instances --cluster ecs-$(whoami)-$cluster --container-instances $inst | jq -r '.containerInstances[] | .ec2InstanceId')
       ip=$(aws ec2 describe-instances --instance-ids $ec2 --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
       clustersvc2ip["${cluster}:${svc}"]=$ip
       echo $ip
@@ -314,10 +313,11 @@ function dockl-ecs {
 
 function docke-ecs {
   svc="$1"
-  cluster=$(get-cluster $2)
-  ip=$(get-ip-for-svc $svc $cluster)
+  shift
+  cmd="${@:-sh}"
+  ip=$(get-ip-for-svc $svc)
   if [ ! -z $ip ]; then
-    ssh-my $ip docke $svc  
+    ssh-my $ip docke $svc $cmd
   fi
 }
 
@@ -350,3 +350,11 @@ function ssh-ecs {
     fi
   fi
 }
+
+function foobar {
+  svc="$1"
+  shift
+  cmd="${@:-sh}"
+  echo "$cmd"
+}
+
