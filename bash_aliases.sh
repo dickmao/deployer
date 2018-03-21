@@ -350,11 +350,3 @@ function ssh-ecs {
     fi
   fi
 }
-
-function foobar {
-  svc="$1"
-  shift
-  cmd="${@:-sh}"
-  echo "$cmd"
-}
-
