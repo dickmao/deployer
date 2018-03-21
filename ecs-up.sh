@@ -23,7 +23,7 @@ function s3_publish {
     local what
     what=$1
     s3cmd mb  s3://${ACCOUNT}.ecs-up --region $REGION 2> /dev/null || [ $? == 13 ]
-    s3cmd sync --delete-removed ${wd}/quickstart-mongodb s3://${ACCOUNT}.ecs-up/
+    s3cmd sync --delete-removed ${wd}/${what} s3://${ACCOUNT}.ecs-up/
 }
 
 function refresh_templates {
