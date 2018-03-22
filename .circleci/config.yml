@@ -13,30 +13,22 @@ references:
       - ecs-compose-up:
           requires:
             - ecs-up
-      - stop-dedupe:
-          requires:
-            - ecs-compose-up
-      - stop-play:
+      - wait-for-digest0:
           requires:
             - ecs-compose-up
       - spider-newyork:
           requires:
-            - stop-dedupe
-            - stop-play
+            - wait-for-digest0
       - spider-listingsproject:
           requires:
-            - stop-dedupe
-            - stop-play
-      - dedupe:
+            - wait-for-digest0
+      - wait-for-digest1:
           requires:
             - spider-newyork
             - spider-listingsproject
-      - success-function:
-          requires:
-            - dedupe
       - ecs-compose-down:
           requires:
-            - success-function
+            - wait-for-digest1
       - ecs-down:
           requires:
             - ecs-compose-down
@@ -98,6 +90,7 @@ jobs:
           root: ecs-state
           paths:
             - "*"
+
   ecs-compose-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -118,37 +111,18 @@ jobs:
           paths:
             - "*"
 
-  stop-dedupe:
+  wait-for-digest0:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
-      - restore_cache:
-          keys: ecscli
       - attach_workspace:
           at: ecs-state
       - run: |
           set -x
-          ./ecs-compose-down.sh -s dedupe
-
-  stop-play:
-    docker:
-      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
-    steps:
-      - checkout
-      - restore_cache:
-          keys: ecscli
-      - attach_workspace:
-          at: ecs-state
-      - run: |
-          set -x
-          ./ecs-compose-down.sh -s play
+          source ./bash_aliases.sh
+          inprog=0
+          while [ $inprog -lt 30 ] && ! ssh-ecs 0 ls /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
 
   spider-newyork:
     docker:
@@ -174,28 +148,9 @@ jobs:
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
 
-  dedupe:
+  wait-for-digest1:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
-    steps:
-      - checkout
-      - attach_workspace:
-          at: ecs-state
-      - run: |
-          set -x
-          source bash_aliases.sh
-          for j in 0 1 ; do image=303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe ; if ssh-ecs $j docker images $image | grep -q $image ; then ssh-ecs $j docker run --rm $image ./dedupe-on-demand.sh 1 ; exit 0 ; break ; fi ; done ;
-          exit 2
-          
-  success-function:
-    docker:
-      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
-        aws_auth:
-          aws_access_key_id: $AWS_ACCESS_KEY_ID
-          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
       - attach_workspace:
@@ -203,7 +158,9 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT bin/success-function
+          inprog=0
+          now=$(date +%s)
+          while [ $inprog -lt 30 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q "." ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
 
   ecs-compose-down:
     docker:
