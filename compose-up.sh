@@ -106,9 +106,9 @@ for k in "${order_matters[@]}" ; do
         ECSROLE=$(aws iam list-roles | jq -r '.Roles[] | select(.RoleName | contains("ECSRole")) | .RoleName')
         elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
     fi
-    if [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" || 
-       [ ${#except[@]} -ne 0 ] && ! test "${except[$k]+isset}" ||
-       [ ${#only[@]} -eq 0 ] && [ ${#except[@]} -eq 0 ] ; then
+    if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 
+       ( [ ${#except[@]} -ne 0 ] && ! test "${except[$k]+isset}" ) ||
+       ( [ ${#only[@]} -eq 0 ] && [ ${#except[@]} -eq 0 ] ) ; then
         $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 5
     fi
 done
