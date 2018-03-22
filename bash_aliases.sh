@@ -105,9 +105,12 @@ git config --global alias.conflicts "diff --name-only --diff-filter=U"
 # export SBT_OPTS="-Xmx4g"
 # export DOCKER_HOST_IP=$(ifconfig docker0 | grep -w inet | awk '{print $2}')
 stty ixon
-export AWS_DEFAULT_PROFILE=default
+
+if aws configure --profile default list 2>&1 >/dev/null ; then
+  export AWS_DEFAULT_PROFILE=default
+  export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
+fi
 export GOPATH="$HOME/go"
-export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
 export PATH=$PATH:$GOPATH/bin
 
 function ssh-mongo {

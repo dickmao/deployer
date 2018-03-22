@@ -60,7 +60,7 @@ jobs:
       - run: |
           set -ex
           eval `aws ecr get-login --no-include-email --region $AWS_REGION`
-          docker build -t circleci:deployer .circleci/images
+          docker build --build-arg aws_region=${AWS_REGION} -t circleci:deployer .circleci/images
           docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
           docker push 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
 
@@ -159,6 +159,7 @@ jobs:
           at: ecs-state
       - run: |
           set -ex
+          set -o pipefail
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl schedule newyork
   
@@ -171,6 +172,7 @@ jobs:
           at: ecs-state
       - run: |
           set -ex
+          set -o pipefail
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl schedule listingsproject
 
@@ -186,6 +188,7 @@ jobs:
           at: ecs-state
       - run: |
           set -ex
+          set -o pipefail
           source bash_aliases.sh
           ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest ./dedupe-on-demand.sh 1
 
@@ -201,6 +204,7 @@ jobs:
           at: ecs-state
       - run: |
           set -ex
+          set -o pipefail
           source ./bash_aliases.sh
           ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT bin/success-function
 
