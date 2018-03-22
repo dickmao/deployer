@@ -317,7 +317,7 @@ function dockl-ecs {
 function docke-ecs {
   svc="$1"
   shift
-  cmd="${@:-sh}"
+  cmd="$@"
   ip=$(get-ip-for-svc $svc)
   if [ ! -z $ip ]; then
     ssh-my $ip docke $svc $cmd

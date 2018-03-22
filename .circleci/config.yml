@@ -58,7 +58,7 @@ jobs:
           docker_layer_caching: false
 
       - run: |
-          set -ex
+          set -x
           eval `aws ecr get-login --no-include-email --region $AWS_REGION`
           docker build --build-arg aws_region=${AWS_REGION} -t circleci:deployer .circleci/images
           docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -69,7 +69,7 @@ jobs:
       - image: circleci/golang:1.9.2
     steps:
       - run: |
-          set -ex
+          set -x
           # Thanks @bobziuchkovski
           git config --global url."https://${GIT_PASSWORD}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
           mkdir -p /go/src/github.com/aws
@@ -92,7 +92,7 @@ jobs:
       - restore_cache:
           keys: ecscli
       - run: |
-          set -ex
+          set -x
           ./ecs-up.sh
       - persist_to_workspace:
           root: ecs-state
@@ -111,7 +111,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
+          set -x
           ./ecs-compose-up.sh
       - persist_to_workspace:
           root: ecs-state
@@ -131,7 +131,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
+          set -x
           ./ecs-compose-down.sh -s dedupe
 
   stop-play:
@@ -147,7 +147,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
+          set -x
           ./ecs-compose-down.sh -s play
 
   spider-newyork:
@@ -158,8 +158,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
-          set -o pipefail
+          set -x
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork
   
@@ -171,8 +170,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
-          set -o pipefail
+          set -x
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
 
@@ -187,11 +185,11 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
-          set -o pipefail
+          set -x
           source bash_aliases.sh
-          ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe:latest ./dedupe-on-demand.sh 1
-
+          for j in 0 1 ; do image=303634175659.dkr.ecr.us-east-2.amazonaws.com/dedupe ; if ssh-ecs $j docker images $image | grep -q $image ; then ssh-ecs $j docker run --rm $image ./dedupe-on-demand.sh 1 ; exit 0 ; break ; fi ; done ;
+          exit 2
+          
   success-function:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -203,8 +201,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
-          set -o pipefail
+          set -x
           source ./bash_aliases.sh
           ssh-ecs 0 docker run --rm 303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT bin/success-function
 
@@ -221,7 +218,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
+          set -x
           ./ecs-compose-down.sh
       - persist_to_workspace:
           root: ecs-state
@@ -239,7 +236,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -ex
+          set -x
           ./ecs-down.sh
       - persist_to_workspace:
           root: ecs-state
