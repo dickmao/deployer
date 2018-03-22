@@ -2,43 +2,6 @@ version: 2
 references:
   # sepp2k no way for array to contain anchor steps and additional steps
 
-  jobs-quick: &jobs-quick
-    jobs:
-      - build-deployer-image
-      - is-cluster-present:
-          requires:
-            - build-deployer-image
-      - build-ecscli
-          requires:
-            - is-cluster-present
-      - ecs-compose-down:
-          requires:
-            - is-cluster-present
-      - ecs-compose-up-except-dedupe:
-          requires:
-            - ecs-compose-down
-      - ecs-compose-up-dedupe:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - spider-newyork:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - spider-listingsproject:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - wait-for-digest:
-          type: approval
-          requires:
-            - spider-newyork
-            - spider-listingsproject
-      - ecs-compose-down:
-          type: approval
-          requires:
-            - wait-for-digest
-      - ecs-down:
-          requires:
-            - ecs-compose-down
-
   jobs-gamut: &jobs-gamut
     jobs:
       - build-deployer-image
@@ -54,7 +17,7 @@ references:
           requires:
             - ecs-compose-up-except-dedupe
       - spider-newyork:
-a          requires:
+          requires:
             - ecs-compose-up-except-dedupe
       - spider-listingsproject:
           requires:

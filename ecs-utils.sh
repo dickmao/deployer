@@ -5,7 +5,6 @@ if ! aws configure get region; then
 fi
 
 function set_circleci_user_vernum {
-  # Lionel: how-to-check-if-a-variable-is-set-in-bash
   if [ -f ${wd}/circleci.api ]; then
     CIRCLE_TOKEN=$(cat ${wd}/circleci.api)
   fi
