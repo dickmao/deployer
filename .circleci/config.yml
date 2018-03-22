@@ -10,25 +10,27 @@ references:
           requires:
             - build-deployer-image
             - build-ecscli
-      - ecs-compose-up:
+      - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
-      - wait-for-digest0:
+      - ecs-compose-up-dedupe:
           requires:
-            - ecs-compose-up
+            - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
-            - wait-for-digest0
+            - ecs-compose-up-except-dedupe
       - spider-listingsproject:
           requires:
-            - wait-for-digest0
-      - wait-for-digest1:
+            - ecs-compose-up-except-dedupe
+      - wait-for-digest:
+          type: approval
           requires:
             - spider-newyork
             - spider-listingsproject
       - ecs-compose-down:
+          type: approval
           requires:
-            - wait-for-digest1
+            - wait-for-digest
       - ecs-down:
           requires:
             - ecs-compose-down
@@ -91,7 +93,7 @@ jobs:
           paths:
             - "*"
 
-  ecs-compose-up:
+  ecs-compose-up-except-dedupe:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
         aws_auth:
@@ -105,13 +107,13 @@ jobs:
           at: ecs-state
       - run: |
           set -x
-          ./ecs-compose-up.sh
+          ./ecs-compose-up.sh -x dedupe
       - persist_to_workspace:
           root: ecs-state
           paths:
             - "*"
 
-  wait-for-digest0:
+  ecs-compose-up-dedupe:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
     steps:
@@ -121,8 +123,8 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          inprog=0
-          while [ $inprog -lt 30 ] && ! ssh-ecs 0 ls /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
+          for m in 0 1 ; do ssh-ecs $m touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
+          ./ecs-compose-up.sh -s dedupe
 
   spider-newyork:
     docker:
@@ -148,7 +150,7 @@ jobs:
           source ./bash_aliases.sh
           docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
 
-  wait-for-digest1:
+  wait-for-digest:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
     steps:
