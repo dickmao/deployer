@@ -161,7 +161,7 @@ jobs:
           set -ex
           set -o pipefail
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl schedule newyork
+          docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork
   
   spider-listingsproject: 
     docker:
@@ -174,7 +174,7 @@ jobs:
           set -ex
           set -o pipefail
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl schedule listingsproject
+          docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
 
   dedupe:
     docker:
