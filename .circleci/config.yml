@@ -23,12 +23,10 @@ references:
           requires:
             - ecs-compose-up-except-dedupe
       - wait-for-digest:
-          type: approval
           requires:
             - spider-newyork
             - spider-listingsproject
       - ecs-compose-down:
-          type: approval
           requires:
             - wait-for-digest
       - ecs-down:
