@@ -66,7 +66,11 @@ source ${wd}/ecs-utils.sh 0
 ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
 REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
-  set_circleci_vernum
+  if ! set_circleci_vernum ; then
+      touch $STATEDIR/$VERNUM
+      echo Not recreating ecs-${USER}-${VERNUM}
+      exit 0
+  fi
 else
   read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
   for s in ${states[@]} ; do
@@ -84,7 +88,6 @@ else
 fi
 touch $STATEDIR/$VERNUM
 
-STACK=ecs-${USER}-${VERNUM}
 KEYFORNOW=dick
 if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded

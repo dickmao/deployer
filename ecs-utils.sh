@@ -27,10 +27,12 @@ function set_circleci_vernum {
     vernum="${reuse#* }"
     if [ $status == "failed" ] && aws ecs describe-clusters --cluster ecs-${USER}-${vernum} | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $vernum ; then
       VERNUM=$vernum
+      return 1
       break
     fi
   done
   unset IFS
+  return 0
 }
 
 wd=$(dirname $0)
