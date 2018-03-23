@@ -110,8 +110,6 @@ if aws configure --profile default list 2>&1 >/dev/null ; then
   export AWS_DEFAULT_PROFILE=default
   export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
 fi
-export GOPATH="$HOME/go"
-export PATH=$PATH:$GOPATH/bin
 
 function ssh-mongo {
     local cluster
