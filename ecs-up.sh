@@ -87,7 +87,7 @@ else
   VERNUM=$(printf "%04d" $((10#$VERNUM)))
 fi
 touch $STATEDIR/$VERNUM
-
+STACK=ecs-${USER}-${VERNUM}
 KEYFORNOW=dick
 if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded
