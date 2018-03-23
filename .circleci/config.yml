@@ -118,6 +118,8 @@ jobs:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
     steps:
       - checkout
+      - restore_cache:
+          keys: ecscli
       - attach_workspace:
           at: ecs-state
       - run: |
@@ -136,7 +138,7 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork
+          docke-ecs scrapyd-crawl ./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork
   
   spider-listingsproject: 
     docker:
@@ -148,7 +150,7 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
+          docke-ecs scrapyd-crawl ./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
 
   wait-for-digest:
     docker:
