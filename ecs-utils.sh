@@ -19,10 +19,14 @@ function set_circleci_vernum {
   VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id[-4:]" )
 
   IFS=$'\n'
-  REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | .workflows | .workflow_id[-4:]" | uniq | head -5)
+  REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r '.[] | "\(.outcome) \(.workflows | .workflow_id[-4:])"' | uniq | head -5)
   for reuse in $REUSE; do
-    if aws ecs describe-clusters --cluster ecs-${USER}-${reuse} | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $reuse ; then
-      VERNUM=$reuse
+    local status
+    local vernum
+    status="${reuse% *}"
+    vernum="${reuse#* }"
+    if [ $status == "failed" ] && aws ecs describe-clusters --cluster ecs-${USER}-${vernum} | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $vernum ; then
+      VERNUM=$vernum
       break
     fi
   done
