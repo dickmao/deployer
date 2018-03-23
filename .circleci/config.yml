@@ -26,6 +26,7 @@ references:
           requires:
             - spider-newyork
             - spider-listingsproject
+            - ecs-compose-up-dedupe
       - ecs-compose-down:
           requires:
             - wait-for-digest
