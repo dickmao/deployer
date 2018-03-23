@@ -4,7 +4,7 @@ if ! aws configure get region; then
   aws configure set region ${AWS_REGION}
 fi
 
-function set_circleci_user_vernum {
+function set_circleci_vernum {
   if [ -f ${wd}/circleci.api ]; then
     CIRCLE_TOKEN=$(cat ${wd}/circleci.api)
   fi
@@ -16,8 +16,17 @@ function set_circleci_user_vernum {
     echo Need CIRCLE_BUILD_NUM environment variable
     exit -1
   fi
-  VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id" | tail -c 5)
-  USER="circleci"
+  VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id[-4:]" )
+
+  IFS=$'\n'
+  REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | .workflows | .workflow_id[-4:]" | uniq | head -5)
+  for reuse in $REUSE; do
+    if aws ecs describe-clusters --cluster ecs-${USER}-${reuse} | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $reuse ; then
+      VERNUM=$reuse
+      break
+    fi
+  done
+  unset IFS
 }
 
 wd=$(dirname $0)
@@ -25,26 +34,20 @@ STATEDIR="${wd}/ecs-state"
 if [ ! -d $STATEDIR ]; then
   mkdir $STATEDIR
 fi
-
-if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
-  set_circleci_user_vernum
-else  
-  USER=$(whoami)
-  VERNUM=${1:--1}
-  if [ $VERNUM == -1 ]; then
-    read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9][0-9][0-9][0-9] 2>/dev/null)
-    if [ ${#array[@]} == 1 ]; then
-      VERNUM=${array[0]}
-    elif [ ${#array[@]} -gt 1 ] ; then
-      echo Which one? ${array[@]}
-      exit -1
-    else
-      echo No outstanding clusters found
-      exit -1
-    fi
+VERNUM=${1:--1}
+if [ $VERNUM == -1 ]; then
+  read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9a-z][0-9a-z][0-9a-z][0-9a-z] 2>/dev/null)
+  if [ ${#array[@]} == 1 ]; then
+    VERNUM=${array[0]}
+  elif [ ${#array[@]} -gt 1 ] ; then
+    echo Which one? ${array[@]}
+    exit -1
+  else
+    echo No outstanding clusters found
+    exit -1
   fi
-  VERNUM=$(printf "%04d" $VERNUM)
 fi
+USER=$(whoami)
 STACK=ecs-${USER}-${VERNUM}
 
 function render_string {
@@ -61,6 +64,7 @@ EOF
       v="${kv#*=}"
       aa+=([$k]="$v")
     done
+    unset IFS
   
     GIT_USER="${aa['username']}"
     GIT_PASSWORD="${aa['password']}"

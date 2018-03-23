@@ -66,7 +66,7 @@ source ${wd}/ecs-utils.sh 0
 ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
 REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
-  set_circleci_user_vernum
+  set_circleci_vernum
 else
   read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
   for s in ${states[@]} ; do
