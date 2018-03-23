@@ -126,6 +126,7 @@ jobs:
           set -x
           source ./bash_aliases.sh
           for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
+          unset AWS_PROFILE
           ./ecs-compose-up.sh -s dedupe
 
   spider-newyork:
