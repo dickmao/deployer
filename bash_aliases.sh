@@ -168,7 +168,12 @@ function docke {
   docker exec -ti $(docker ps -q --filter "label=com.docker.compose.service=$1" | head -1) bash
 }
 function dockl {
-  docker logs $(docker ps -qla --filter "label=com.docker.compose.service=$1" | head -1) 2>&1
+  tail=
+  if [ $1 == '-f' ]; then
+    shift
+    tail=" -f"
+  fi
+  docker logs${tail} $(docker ps -qla --filter "label=com.docker.compose.service=$1" | head -1) 2>&1
 }
 function dockr {
   docker rm -f $(docker ps -aq --filter "label=com.docker.compose.service=$1" | head -1)

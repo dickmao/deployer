@@ -27,9 +27,12 @@ references:
             - spider-newyork
             - spider-listingsproject
             - ecs-compose-up-dedupe
-      - ecs-compose-down:
+      - success-function:
           requires:
             - wait-for-digest
+      - ecs-compose-down:
+          requires:
+            - success-function
       - ecs-down:
           requires:
             - ecs-compose-down
@@ -167,6 +170,18 @@ jobs:
           while [ $inprog -lt 30 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
           ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
           echo $now
+
+  success-function:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run: |
+          set -x
+          source ./bash_aliases.sh
+          docke-ecs play-email bin/success-function
 
   ecs-compose-down:
     docker:
