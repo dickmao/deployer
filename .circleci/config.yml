@@ -167,7 +167,7 @@ jobs:
           source ./bash_aliases.sh
           inprog=0
           now=$(date +%s)
-          while [ $inprog -lt 30 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
+          while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
           ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
           echo $now
 
