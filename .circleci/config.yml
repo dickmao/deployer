@@ -141,7 +141,8 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl ./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork
+          # i believe i need sleep for the load balancer to get settled with the CNAME
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork"
   
   spider-listingsproject: 
     docker:
@@ -153,7 +154,7 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl ./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
 
   wait-for-digest:
     docker:

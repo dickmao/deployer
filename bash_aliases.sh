@@ -52,8 +52,8 @@ function lambdalogs {
 
 function cloudtrails {
   farback=${1:-20 minutes ago}
-  cluster=$(get-cluster $2)
-  id=$(aws cloudformation describe-stack-resources --stack-name ecs-$(whoami)-$cluster| jq -r '.StackResources[] | select(.ResourceType=="AWS::S3::Bucket") | .PhysicalResourceId '  )
+  vernum=$(get-vernum $2)
+  id=$(aws cloudformation describe-stack-resources --stack-name $(get-cluster $vernum) | jq -r '.StackResources[] | select(.ResourceType=="AWS::S3::Bucket") | .PhysicalResourceId '  )
   rm -rf ~/.trailscraper/*
   TZ=US/Eastern trailscraper download --bucket  $id  --region us-east-2 --region us-east-1 --from "'$farback'" --to "now" --account-id 303634175659
   skan ~/.trailscraper | awk {'print $4'} | xargs zcat | jq -r '.Records[]' | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
@@ -106,24 +106,24 @@ git config --global alias.conflicts "diff --name-only --diff-filter=U"
 # export DOCKER_HOST_IP=$(ifconfig docker0 | grep -w inet | awk '{print $2}')
 stty ixon
 
-if aws configure --profile default list 2>&1 >/dev/null ; then
+if [ -z $AWS_ACCESS_KEY_ID ] && aws configure --profile default list 2>&1 >/dev/null ; then
   export AWS_DEFAULT_PROFILE=default
   export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
 fi
 
 function ssh-mongo {
-    local cluster
-    cluster=$(get-cluster $1);
-    if ! q_cluster_changed $cluster 0 ; then
-      CLUSTER=$cluster ssh-ecs 0 ssh ${clustersvc2ip["${cluster}:mongo"]}
+    local vernum
+    vernum=$(get-vernum $1);
+    if ! q_cluster_changed $vernum 0 ; then
+      VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
       return
     fi
-    CLUSTER=$cluster scp-ecs $HOME/.ssh/id_rsa .ssh/
+    VERNUM=$vernum scp-ecs $HOME/.ssh/id_rsa .ssh/
     # FIXME needs to be by cluster
     local mongo
     mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r '.Reservations[] | select(.Instances[] | select(.State.Code==16))| .Instances[-1] | .PrivateIpAddress ')
-    clustersvc2ip["${cluster}:mongo"]=$mongo
-    CLUSTER=$cluster ssh-ecs 0 ssh ${clustersvc2ip["${cluster}:mongo"]}
+    clustersvc2ip["${vernum}:mongo"]=$mongo
+    VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
 }
 
 function ssh-my() {
@@ -183,32 +183,45 @@ function dockrm {
 }
 
 function get-cluster {
-  cluster=$1
-  if [ -z $cluster ]; then
-    if [ -z $CLUSTER ]; then
-      cluster=$(cd ~/*/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
+  if [ ! -z $ECS_CLUSTER ]; then
+    echo $ECS_CLUSTER
+  else
+    local vernum
+    vernum=$(get-vernum $1)
+    echo ecs-$(whoami)-${vernum}
+  fi
+}
+
+function get-vernum {
+  local vernum
+  vernum=$1
+  if [ -z $vernum ]; then
+    if [ ! -z $ECS_CLUSTER ]; then
+      vernum=${ECS_CLUSTER##*-}
+    elif [ ! -z $VERNUM ]; then
+      vernum=$VERNUM
     else
-      cluster=$CLUSTER
+      vernum=$(cd ~/*/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
     fi
   fi
-  echo $cluster
+  echo $vernum
 }
 
 function rsync-from-ecs {
   src=$1
   dest=$2
-  cluster=$(get-cluster $3)
-  rsync -vaze "ssh -i ~/.ssh/id_rsa" ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-dick-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-dick-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$src $dest
+  vernum=$(get-vernum $3)
+  rsync -vaze "ssh -i ~/.ssh/id_rsa" ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$src $dest
 }
   
 function scp-ecs {
   src=$1
   dest=$2
-  cluster=$(get-cluster $3)
-  howmany=$(aws ecs list-container-instances --cluster ecs-dick-$cluster | jq -r '.[] | .[]' | wc -l)
+  vernum=$(get-vernum $3)
+  howmany=$(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]' | wc -l)
   howmany=$(($howmany-1))
   for which in `seq 0 $howmany`; do
-    scp -i ~/.ssh/id_rsa $src ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-dick-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-dick-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$dest
+    scp -i ~/.ssh/id_rsa $src ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$dest
   done
 }
 
@@ -232,10 +245,10 @@ function awslog2 {
 }
 
 function unset_clustersvc2ip {
-  local cluster
+  local vernum
   local svc
   svc=$1
-  cluster=$(get-cluster $2)
+  vernum=$(get-vernum $2)
   sgroup=${svc%%-*}
 
   for k in "${!clustersvc2ip[@]}" ; do
@@ -248,13 +261,13 @@ function unset_clustersvc2ip {
 }
 
 function q_cluster_changed {
-  local cluster
+  local vernum
   local idx
-  cluster=$(get-cluster $1)
+  vernum=$(get-vernum $1)
   idx=$2
-  if test "${clustersvc2ip[${cluster}:${idx}]+isset}" ; then
-    if ! nc -zw 1 ${clustersvc2ip["${cluster}:${idx}"]} 22 ; then
-      unset clustersvc2ip["${cluster}:${idx}"]
+  if test "${clustersvc2ip[${vernum}:${idx}]+isset}" ; then
+    if ! nc -zw 1 ${clustersvc2ip["${vernum}:${idx}"]} 22 ; then
+      unset clustersvc2ip["${vernum}:${idx}"]
       return 0
     else
       return 1
@@ -265,15 +278,15 @@ function q_cluster_changed {
 
 function get-ip-for-index {
   local svc
-  local cluster
+  local vernum
   svc="$1"
-  cluster=$(get-cluster $2)
-  if ! q_cluster_changed $cluster $svc ; then
-    echo ${clustersvc2ip["${cluster}:${svc}"]}
+  vernum=$(get-vernum $2)
+  if ! q_cluster_changed $vernum $svc ; then
+    echo ${clustersvc2ip["${vernum}:${svc}"]}
     return
   fi
-  ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster ecs-$(whoami)-$cluster --container-instances $(aws ecs list-container-instances --cluster ecs-$(whoami)-$cluster | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
-  clustersvc2ip["${cluster}:${svc}"]=$ip
+  ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+  clustersvc2ip["${vernum}:${svc}"]=$ip
   echo $ip
 }
   
@@ -281,22 +294,22 @@ function get-ip-for-index {
 function get-ip-for-svc {
   svc="$1"
   sgroup=${svc%%-*}
-  cluster=$(get-cluster $2)
-  if ! q_cluster_changed $cluster $svc ; then
-    echo ${clustersvc2ip["${cluster}:${svc}"]}
+  vernum=$(get-vernum $2)
+  if ! q_cluster_changed $vernum $svc ; then
+    echo ${clustersvc2ip["${vernum}:${svc}"]}
     return
   fi
 
-  for arn in $(aws ecs list-tasks --cluster ecs-$(whoami)-$cluster | jq -r '.taskArns[] ') ; do 
-    group_inst=$(aws ecs describe-tasks --cluster ecs-$(whoami)-$cluster --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
+  for arn in $(aws ecs list-tasks --cluster $(get-cluster $vernum) | jq -r '.taskArns[] ') ; do 
+    group_inst=$(aws ecs describe-tasks --cluster $(get-cluster $vernum) --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
     group=${group_inst%% *}
     group=${group##*:}
     group=${group%%-*}
     inst=${group_inst##* }
     if [ $group == $sgroup ] ; then 
-      ec2=$(aws ecs describe-container-instances --cluster ecs-$(whoami)-$cluster --container-instances $inst | jq -r '.containerInstances[] | .ec2InstanceId')
+      ec2=$(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $inst | jq -r '.containerInstances[] | .ec2InstanceId')
       ip=$(aws ec2 describe-instances --instance-ids $ec2 --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
-      clustersvc2ip["${cluster}:${svc}"]=$ip
+      clustersvc2ip["${vernum}:${svc}"]=$ip
       echo $ip
       break
     fi
@@ -310,8 +323,8 @@ function dockl-ecs {
     tail=" -f"
   fi
   svc="$1"
-  cluster=$(get-cluster $2)
-  ip=$(get-ip-for-svc $svc $cluster)
+  vernum=$(get-vernum $2)
+  ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
     ssh-my $ip dockl$tail $svc
   fi
@@ -329,8 +342,8 @@ function docke-ecs {
 
 function dockr-ecs {
   svc="$1"
-  cluster=$(get-cluster $2)
-  ip=$(get-ip-for-svc $svc $cluster)
+  vernum=$(get-vernum $2)
+  ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
     ssh-my $ip dockr $svc  
   fi
@@ -340,17 +353,17 @@ function ssh-ecs {
   svc="$1"
   shift
   cmd="$@"
-  cluster=$(get-cluster)
+  vernum=$(get-vernum)
   re='^[0-9]+$' # yes, i have to assign it first.  See SO Charles Duffy
   if [[ $svc =~ $re ]]; then
     # parent variables like clustersvc2ip don't get updated in subshells
-    ip=$(get-ip-for-index $svc $cluster)
-    clustersvc2ip["${cluster}:${svc}"]=$ip
+    ip=$(get-ip-for-index $svc $vernum)
+    clustersvc2ip["${vernum}:${svc}"]=$ip
     ssh-my $ip $cmd
   else
     # parent variables like clustersvc2ip don't get updated in subshells
-    ip=$(get-ip-for-svc $svc $cluster)
-    clustersvc2ip["${cluster}:${svc}"]=$ip
+    ip=$(get-ip-for-svc $svc $vernum)
+    clustersvc2ip["${vernum}:${svc}"]=$ip
     if [ ! -z $ip ]; then
       ssh-my $ip $cmd
     fi
