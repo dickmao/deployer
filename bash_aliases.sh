@@ -1,6 +1,18 @@
 declare -A clustersvc2ip
 clustersvc2ip["0000:"]="localhost"
 
+function failed {
+  local vcs
+  local user
+  local project
+  local token
+  vcs=${1:-github}
+  user=${2:-dickmao}
+  project=${3:-deployer}
+  token=${4:-$(cat ./circleci.api)}
+  curl -s $(curl -sku $token: https://circleci.com/api/v1.1/project/${vcs}/${user}/${project}/$(curl -sku $token: https://circleci.com/api/v1.1/project/${vcs}/${user}/${project}?filter=failed | jq -r '.[0] | .build_num')| jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' ) | gzip -dc| jq -r '.[] | .message'
+}
+
 function exevents {
   local log
   local json
@@ -200,7 +212,7 @@ function get-vernum {
     elif [ ! -z ${VERNUM:-} ]; then
       vernum=$VERNUM
     else
-      vernum=$(cd $(dirname $0)/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
+      vernum=$(cd $(dirname ${BASH_SOURCE})/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
     fi
   fi
   echo $vernum
