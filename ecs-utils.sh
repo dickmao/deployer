@@ -25,7 +25,7 @@ function set_circleci_vernum {
     local vernum
     status="${reuse% *}"
     vernum="${reuse#* }"
-    if [ $status == "failed" ] && aws ecs describe-clusters --cluster ecs-${USER}-${vernum} | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $vernum ; then
+    if [ $status == "failed" ] && aws ecs describe-clusters --cluster $(get-cluster $vernum) | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $vernum ; then
       VERNUM=$vernum
       return 1
       break

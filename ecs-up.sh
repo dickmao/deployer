@@ -68,7 +68,7 @@ REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
   if ! set_circleci_vernum ; then
       touch $STATEDIR/$VERNUM
-      echo Not recreating ecs-${USER}-${VERNUM}
+      echo Not recreating $(get-cluster)
       exit 0
   fi
 else
@@ -82,12 +82,11 @@ else
       fi
   done
   VERNUM=${VERNUM:-0001}
-  USER=$(whoami)
   # avoid interp as octal!
   VERNUM=$(printf "%04d" $((10#$VERNUM)))
 fi
 touch $STATEDIR/$VERNUM
-STACK=ecs-${USER}-${VERNUM}
+STACK=$(get-cluster $VERNUM)
 KEYFORNOW=dick
 if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded

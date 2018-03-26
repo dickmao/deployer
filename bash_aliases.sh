@@ -140,7 +140,6 @@ function aws_configure() {
   export PATH=/opt/terraform:$PATH
 }
 
-alias sdkmanager=${ANDROID_HOME}/tools/bin/sdkmanager
 # alias sbt="$(which sbt) -mem 4000 -jvm-debug 9997"
 # alias domino_nucleus="$(which sbt) -mem 4000 -jvm-debug 9998 -shell 'project nucleus' compile run"
 # alias domino_executor="$(which sbt) -mem 4000 -jvm-debug 9999 -shell 'project executor' compile run"
@@ -183,7 +182,7 @@ function dockrm {
 }
 
 function get-cluster {
-  if [ ! -z $ECS_CLUSTER ]; then
+  if [ ! -z ${ECS_CLUSTER:-} ]; then
     echo $ECS_CLUSTER
   else
     local vernum
@@ -196,9 +195,9 @@ function get-vernum {
   local vernum
   vernum=${1:-}
   if [ -z $vernum ]; then
-    if [ ! -z $ECS_CLUSTER ]; then
+    if [ ! -z ${ECS_CLUSTER:-} ]; then
       vernum=${ECS_CLUSTER##*-}
-    elif [ ! -z $VERNUM ]; then
+    elif [ ! -z ${VERNUM:-} ]; then
       vernum=$VERNUM
     else
       vernum=$(cd $(dirname $0)/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
