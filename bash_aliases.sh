@@ -52,7 +52,7 @@ function lambdalogs {
 
 function cloudtrails {
   farback=${1:-20 minutes ago}
-  vernum=$(get-vernum $2)
+  vernum=$(get-vernum ${2:-})
   id=$(aws cloudformation describe-stack-resources --stack-name $(get-cluster $vernum) | jq -r '.StackResources[] | select(.ResourceType=="AWS::S3::Bucket") | .PhysicalResourceId '  )
   rm -rf ~/.trailscraper/*
   TZ=US/Eastern trailscraper download --bucket  $id  --region us-east-2 --region us-east-1 --from "'$farback'" --to "now" --account-id 303634175659
@@ -81,7 +81,7 @@ EOF
   done
   GIT_USER="${aa['username']}"
   GIT_PASSWORD="${aa['password']}"
-  if [ ! -z $1 ] && [ $1 == 'build' ]; then
+  if [ ! -z ${1:-} ] && [ ${1:-} == 'build' ]; then
     $(which circleci) $* -e AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) -e AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) -e AWS_REGION=$(aws configure get region) -e AWS_DEFAULT_REGION=$(aws configure get region) -e GIT_USER=${GIT_USER} -e GIT_PASSWORD=${GIT_PASSWORD}
   else
     $(which circleci) $*
@@ -106,14 +106,14 @@ git config --global alias.conflicts "diff --name-only --diff-filter=U"
 # export DOCKER_HOST_IP=$(ifconfig docker0 | grep -w inet | awk '{print $2}')
 stty ixon
 
-if [ -z $AWS_ACCESS_KEY_ID ] && aws configure --profile default list 2>&1 >/dev/null ; then
+if [ -z ${AWS_ACCESS_KEY_ID:-} ] && aws configure --profile default list 2>&1 >/dev/null ; then
   export AWS_DEFAULT_PROFILE=default
   export AWS_PROFILE=${AWS_DEFAULT_PROFILE}
 fi
 
 function ssh-mongo {
     local vernum
-    vernum=$(get-vernum $1);
+    vernum=$(get-vernum ${1:-});
     if ! q_cluster_changed $vernum 0 ; then
       VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
       return
@@ -187,37 +187,37 @@ function get-cluster {
     echo $ECS_CLUSTER
   else
     local vernum
-    vernum=$(get-vernum $1)
+    vernum=$(get-vernum ${1:-})
     echo ecs-$(whoami)-${vernum}
   fi
 }
 
 function get-vernum {
   local vernum
-  vernum=$1
+  vernum=${1:-}
   if [ -z $vernum ]; then
     if [ ! -z $ECS_CLUSTER ]; then
       vernum=${ECS_CLUSTER##*-}
     elif [ ! -z $VERNUM ]; then
       vernum=$VERNUM
     else
-      vernum=$(cd ~/*/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
+      vernum=$(cd $(dirname $0)/ecs-state ; ls -1 [a-z0-9][a-z0-9][a-z0-9][a-z0-9] 2>/dev/null| tail -1 | cut -d ' ' -f1)
     fi
   fi
   echo $vernum
 }
 
 function rsync-from-ecs {
-  src=$1
-  dest=$2
-  vernum=$(get-vernum $3)
+  src=${1:-}
+  dest=${2:-}
+  vernum=$(get-vernum ${3:-})
   rsync -vaze "ssh -i ~/.ssh/id_rsa" ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$src $dest
 }
   
 function scp-ecs {
-  src=$1
-  dest=$2
-  vernum=$(get-vernum $3)
+  src=${1:-}
+  dest=${2:-}
+  vernum=$(get-vernum ${3:-})
   howmany=$(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]' | wc -l)
   howmany=$(($howmany-1))
   for which in `seq 0 $howmany`; do
@@ -247,8 +247,8 @@ function awslog2 {
 function unset_clustersvc2ip {
   local vernum
   local svc
-  svc=$1
-  vernum=$(get-vernum $2)
+  svc=${1:-}
+  vernum=$(get-vernum ${2:-})
   sgroup=${svc%%-*}
 
   for k in "${!clustersvc2ip[@]}" ; do
@@ -263,8 +263,8 @@ function unset_clustersvc2ip {
 function q_cluster_changed {
   local vernum
   local idx
-  vernum=$(get-vernum $1)
-  idx=$2
+  vernum=$(get-vernum ${1:-})
+  idx=${2:-}
   if test "${clustersvc2ip[${vernum}:${idx}]+isset}" ; then
     if ! nc -zw 1 ${clustersvc2ip["${vernum}:${idx}"]} 22 ; then
       unset clustersvc2ip["${vernum}:${idx}"]
@@ -279,8 +279,8 @@ function q_cluster_changed {
 function get-ip-for-index {
   local svc
   local vernum
-  svc="$1"
-  vernum=$(get-vernum $2)
+  svc="${1:-}"
+  vernum=$(get-vernum ${2:-})
   if ! q_cluster_changed $vernum $svc ; then
     echo ${clustersvc2ip["${vernum}:${svc}"]}
     return
@@ -292,9 +292,9 @@ function get-ip-for-index {
   
 
 function get-ip-for-svc {
-  svc="$1"
+  svc="${1:-}"
   sgroup=${svc%%-*}
-  vernum=$(get-vernum $2)
+  vernum=$(get-vernum ${2:-})
   if ! q_cluster_changed $vernum $svc ; then
     echo ${clustersvc2ip["${vernum}:${svc}"]}
     return
@@ -323,7 +323,7 @@ function dockl-ecs {
     tail=" -f"
   fi
   svc="$1"
-  vernum=$(get-vernum $2)
+  vernum=$(get-vernum ${2:-})
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
     ssh-my $ip dockl$tail $svc
@@ -342,7 +342,7 @@ function docke-ecs {
 
 function dockr-ecs {
   svc="$1"
-  vernum=$(get-vernum $2)
+  vernum=$(get-vernum ${2:-})
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
     ssh-my $ip dockr $svc  

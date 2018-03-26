@@ -36,25 +36,17 @@ function set_circleci_vernum {
 }
 
 wd=$(dirname $0)
+source ${wd}/bash_aliases.sh
 STATEDIR="${wd}/ecs-state"
 if [ ! -d $STATEDIR ]; then
   mkdir $STATEDIR
 fi
-VERNUM=${1:--1}
-if [ $VERNUM == -1 ]; then
-  read -r -a array <<< $(cd $STATEDIR ; ls -1 [0-9a-z][0-9a-z][0-9a-z][0-9a-z] 2>/dev/null)
-  if [ ${#array[@]} == 1 ]; then
-    VERNUM=${array[0]}
-  elif [ ${#array[@]} -gt 1 ] ; then
-    echo Which one? ${array[@]}
-    exit -1
-  else
-    echo No outstanding clusters found
-    exit -1
-  fi
+VERNUM=${1:-$(get-vernum)}
+if [ -z $VERNUM ]; then
+  echo No outstanding clusters found
+  exit -1
 fi
-USER=$(whoami)
-STACK=ecs-${USER}-${VERNUM}
+STACK=$(get-cluster $VERNUM)
 
 function render_string {
   mode=${1:-dev}

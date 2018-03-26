@@ -13,6 +13,9 @@ references:
       - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
+      - login-node:
+          requires:
+            - ecs-compose-up-except-dedupe
       - ecs-compose-up-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
@@ -128,8 +131,20 @@ jobs:
           set -x
           source ./bash_aliases.sh
           for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
-          unset AWS_PROFILE
           ./ecs-compose-up.sh -s dedupe
+
+  login-node:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - run: |
+          set -x
+          source ./bash_aliases.sh
 
   spider-newyork:
     docker:
