@@ -88,6 +88,8 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
+          # I need /var/lib/scrapyd to be made by ecs-compose-up-except-dedupe
+          # I can now touch digest there so that dedupe doesn't go after any existing Data
           for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
           ./ecs-compose-up.sh -s dedupe
 
@@ -141,9 +143,9 @@ jobs:
           source ./bash_aliases.sh
           inprog=0
           now=$(date +%s)
-          while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done 
+          while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$now | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done
+          echo Found digest later than $(date -d @$now)
           ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
-          echo $now
 
   success-function:
     docker:
@@ -214,6 +216,8 @@ workflows:
       - ecs-compose-up-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
+      # the spiders can run parallel to their antecedents
+      # but I am getting exit 137 for spider-newyork for some reason
       - spider-newyork:
           requires:
             - login-node
