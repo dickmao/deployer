@@ -103,7 +103,7 @@ for k in "${order_matters[@]}" ; do
 
         # targetarn=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-0001|jq -r '.StackResources[] | select(.ResourceType=="AWS::ElasticLoadBalancingV2::TargetGroup") | .PhysicalResourceId')
         # service specifies desired count of tasks which are composed of container-names
-        ECSROLE=$(aws iam list-roles | jq -r '.Roles[] | select(.RoleName | contains("ECSRole")) | .RoleName')
+        ECSROLE=$(aws iam list-roles | jq -r ".Roles[] | select(.RoleName | contains(\"${STACK}-ECSRole\")) | .RoleName")
         elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
     fi
     if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 

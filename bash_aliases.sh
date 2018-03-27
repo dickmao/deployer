@@ -4,14 +4,20 @@ clustersvc2ip["0000:"]="localhost"
 function failed {
   local buildnum
   local step
-  buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer?filter=failed | jq -r '.[0] | .build_num')}
-  step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' )
-  if [ -z $step ]; then
-    step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[-1] | .actions[] | .output_url' )
-  fi
   local token
   token=$(cat ./circleci.api)
-  curl -s $step | gzip -dc| jq -r '.[] | .message'
+  buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer?filter=failed | jq -r '.[0] | .build_num')}
+  local explicit_step
+  explicit=${2:-}
+  if [ -z $explicit ] ; then
+    step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' )
+    if [ -z $step ]; then
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[-1] | .actions[] | .output_url' )
+    fi
+  else
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r ".steps[$explicit] | .actions[] | .output_url" )
+  fi
+  curl -s $step | gzip -dc| jq -r '.[] | .message' | dos2unix
 }
 
 function exevents {

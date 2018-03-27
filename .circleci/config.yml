@@ -76,6 +76,23 @@ jobs:
           paths:
             - "*"
 
+  ecs-compose-up-dedupe-partial:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - run: |
+          set -x
+          source ./bash_aliases.sh
+          # I need /var/lib/scrapyd to be made by ecs-compose-up-except-dedupe
+          # I can now touch digest there so that dedupe doesn't go after any existing Data
+          for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
+          ./ecs-compose-up.sh -s dedupe
+
   ecs-compose-up-dedupe:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -117,7 +134,8 @@ jobs:
           set -x
           source ./bash_aliases.sh
           # i believe i need sleep for the load balancer to get settled with the CNAME
-          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork"
+          # Later: maybe it's really a container oom issue
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork"
   
   spider-listingsproject: 
     docker:
@@ -129,7 +147,7 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
 
   wait-for-digest:
     docker:
@@ -213,7 +231,7 @@ workflows:
       - login-node:
           requires:
             - ecs-compose-up-except-dedupe
-      - ecs-compose-up-dedupe:
+      - ecs-compose-up-dedupe-partial:
           requires:
             - ecs-compose-up-except-dedupe
       # the spiders can run parallel to their antecedents
@@ -221,11 +239,11 @@ workflows:
       - spider-newyork:
           requires:
             - login-node
-            - ecs-compose-up-dedupe
+            - ecs-compose-up-dedupe-partial
       - spider-listingsproject:
           requires:
             - login-node
-            - ecs-compose-up-dedupe
+            - ecs-compose-up-dedupe-partial
       - wait-for-digest:
           requires:
             - spider-newyork
