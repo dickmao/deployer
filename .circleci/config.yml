@@ -1,49 +1,4 @@
 version: 2
-references:
-  # sepp2k no way for array to contain anchor steps and additional steps
-
-  jobs-gamut: &jobs-gamut
-    jobs:
-      - build-deployer-image
-      - build-ecscli
-      - ecs-up:
-          requires:
-            - build-deployer-image
-            - build-ecscli
-      - ecs-compose-up-except-dedupe:
-          requires:
-            - ecs-up
-      - login-node:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - ecs-compose-up-dedupe:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - spider-newyork:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - spider-listingsproject:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - wait-for-digest:
-          requires:
-            - spider-newyork
-            - spider-listingsproject
-            - ecs-compose-up-dedupe
-      - success-function:
-          filters:
-            branches:
-              only:
-                - master
-          requires:
-            - wait-for-digest
-      - ecs-compose-down:
-          requires:
-            - success-function
-      - ecs-down:
-          requires:
-            - ecs-compose-down
-
 jobs:
   build-deployer-image:
     docker:
@@ -243,7 +198,42 @@ jobs:
 workflows:
   version: 2
   commit:
-    <<: *jobs-gamut
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-up:
+          requires:
+            - build-deployer-image
+            - build-ecscli
+      - ecs-compose-up-except-dedupe:
+          requires:
+            - ecs-up
+      - login-node:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - ecs-compose-up-dedupe:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - spider-newyork:
+          requires:
+            - login-node
+            - ecs-compose-up-dedupe
+      - spider-listingsproject:
+          requires:
+            - login-node
+            - ecs-compose-up-dedupe
+      - wait-for-digest:
+          requires:
+            - spider-newyork
+            - spider-listingsproject
+      - ecs-compose-down:
+          requires:
+            - wait-for-digest
+      - ecs-down:
+          requires:
+            - ecs-compose-down
+
+  # sepp2k no way for array to contain anchor steps and additional steps
   scheduled-workflow:
     triggers:
       - schedule:
@@ -251,4 +241,40 @@ workflows:
           filters:
             branches:
               only: master
-    <<: *jobs-gamut
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-up:
+          requires:
+            - build-deployer-image
+            - build-ecscli
+      - ecs-compose-up-except-dedupe:
+          requires:
+            - ecs-up
+      - login-node:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - ecs-compose-up-dedupe:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - spider-newyork:
+          requires:
+            - login-node
+            - ecs-compose-up-dedupe
+      - spider-listingsproject:
+          requires:
+            - login-node
+            - ecs-compose-up-dedupe
+      - wait-for-digest:
+          requires:
+            - spider-newyork
+            - spider-listingsproject
+      - success-function:
+          requires:
+            - wait-for-digest
+      - ecs-compose-down:
+          requires:
+            - success-function
+      - ecs-down:
+          requires:
+            - ecs-compose-down

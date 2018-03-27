@@ -35,6 +35,7 @@ def aws_snapshot_of(name, device):
     snaps = sorted(ec2_resource.snapshots.filter(Filters=[
         { 'Name': 'tag:Name','Values': [name] },
         { 'Name': 'tag:Device','Values': [device] },
+        { 'Name': 'tag:Branch','Values': [ os.environ.get('CIRCLE_BRANCH') or "dev" ] },
     ]), key=lambda snap: snap.start_time)
 
     try:

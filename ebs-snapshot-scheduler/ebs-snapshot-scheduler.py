@@ -15,6 +15,7 @@ import argparse
 import botocore.exceptions
 import datetime
 import logging
+import os
 
 import boto3
 
@@ -41,6 +42,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
+                                { 'Key': 'Branch', 'Value': os.environ.get('CIRCLE_BRANCH') or "dev" },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))
