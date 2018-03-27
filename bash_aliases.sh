@@ -5,7 +5,7 @@ function failed {
   local buildnum
   local step
   local token
-  token=$(cat ./circleci.api)
+  token=$(cat ~/aws/circleci.api)
   buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer?filter=failed | jq -r '.[0] | .build_num')}
   local explicit_step
   explicit=${2:-}
