@@ -143,7 +143,7 @@ jobs:
           set -x
           source ./bash_aliases.sh
           inprog=0
-          log=$(date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
+          log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
           while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done
           echo Found digest later than $(date -d @$log)
           ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
