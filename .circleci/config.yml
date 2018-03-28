@@ -118,7 +118,7 @@ jobs:
           source ./bash_aliases.sh
           # i believe i need sleep for the load balancer to get settled with the CNAME
           # Later, no.  Still happens with sleep 60.
-          docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; if [ $? == 137 ] \; then scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; fi"
+          docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; if [ $? -eq 137 ] \; then scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; fi"
   
   spider-listingsproject: 
     docker:
@@ -141,12 +141,22 @@ jobs:
           at: ecs-state
       - run: |
           set -x
-          source ./bash_aliases.sh
+          . ./bash_aliases.sh
           inprog=0
           log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
-          while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done
-          echo Found digest later than $log
-          ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
+          while [ $inprog -lt 180 ] ; do
+            sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log)
+            if ! echo $sshout | grep -q digest ; then 
+              echo $inprog $log $sshout
+              let inprog=inprog+1
+              sleep 30
+            else
+              echo Found digest later than $log
+              echo $sshout
+              exit 0
+            fi
+          done
+          exit 1
 
   success-function:
     docker:
