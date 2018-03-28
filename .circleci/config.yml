@@ -174,10 +174,10 @@ jobs:
               else
                 echo Found digest later than $(date -d @$log)
                 ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
-                exit 0
+                return 0
               fi
             done
-            exit 1
+            return 1
 
   success-function:
     docker:
