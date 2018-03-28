@@ -79,6 +79,10 @@ jobs:
           root: ecs-state
           paths:
             - "*"
+      - persist_to_workspace:
+          root: ../.cache
+          paths:
+            - "ecs-cli"
 
   ecs-compose-up-dedupe:
     docker:
@@ -89,6 +93,8 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
       - run:
           command: |
             set -x
@@ -98,6 +104,10 @@ jobs:
             # Then when/if spiders update Marker, dedupe will act en masse
             for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
             ./ecs-compose-up.sh -s dedupe
+      - persist_to_workspace:
+          root: ../.cache
+          paths:
+            - "ecs-cli"
 
   login-node:
     docker:
@@ -108,6 +118,8 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
       - run:
           command: |
             set -x
@@ -192,6 +204,8 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
       - run:
           command: |
             set -x
