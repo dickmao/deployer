@@ -57,16 +57,19 @@ function lambdalogs {
   local loggroups
   local choice
   farback=${1:-1h}
+  choice=${2:-}
   read -r -a loggroups <<< $(awslogs groups)
-  local i
-  i=1
-  for lg in ${loggroups[@]}; do
-    echo $i $lg
-    ((i++))
-  done
-  read -p "Choose: " choice
+  if [ -z $choice ]; then
+    local i
+    i=1
+    for lg in ${loggroups[@]}; do
+      echo $i $lg
+      ((i++))
+    done
+    read -p "Choose: " choice
+  fi
   ((choice--))
-  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;' | less
+  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
 }
 
 function cloudtrails {
