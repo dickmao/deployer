@@ -19,7 +19,7 @@ function set_circleci_vernum {
   VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id[-4:]" )
 
   IFS=$'\n'
-  REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r '.[] | "\(.outcome) \(.workflows | .workflow_id[-4:])"' | uniq | head -5)
+  REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r '.[] | "\(.outcome) \(.workflows | .workflow_id[-4:])"' | uniq )
   for reuse in $REUSE; do
     local status
     local vernum

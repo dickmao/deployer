@@ -137,8 +137,7 @@ def lambda_handler(event, context):
                     if now_day in weekdays:
                         active_day = True
                 else:
-                    days_active = days_active.split(",")
-                    for d in days_active:
+                    for d in days_active.split(","):
                         if d.lower() == now_day:
                             active_day = True
 
