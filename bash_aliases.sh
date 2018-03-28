@@ -2,15 +2,22 @@ declare -A clustersvc2ip
 clustersvc2ip["0000:"]="localhost"
 
 function failed {
-  local vcs
-  local user
-  local project
+  local buildnum
+  local step
   local token
-  vcs=${1:-github}
-  user=${2:-dickmao}
-  project=${3:-deployer}
-  token=${4:-$(cat ./circleci.api)}
-  curl -s $(curl -sku $token: https://circleci.com/api/v1.1/project/${vcs}/${user}/${project}/$(curl -sku $token: https://circleci.com/api/v1.1/project/${vcs}/${user}/${project}?filter=failed | jq -r '.[0] | .build_num')| jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' ) | gzip -dc| jq -r '.[] | .message'
+  token=$(cat ~/aws/circleci.api)
+  buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer?filter=failed | jq -r '.[0] | .build_num')}
+  local explicit_step
+  explicit=${2:-}
+  if [ -z $explicit ] ; then
+    step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' )
+    if [ -z $step ]; then
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[-1] | .actions[] | .output_url' )
+    fi
+  else
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r ".steps[$explicit] | .actions[] | .output_url" )
+  fi
+  curl -s $step | gzip -dc| jq -r '.[] | .message' | dos2unix
 }
 
 function exevents {
@@ -49,17 +56,20 @@ function lambdalogs {
   local farback
   local loggroups
   local choice
-  farback=${1:-1h}
+  farback=${1:--1h}
+  choice=${2:-}
   read -r -a loggroups <<< $(awslogs groups)
-  local i
-  i=1
-  for lg in ${loggroups[@]}; do
-    echo $i $lg
-    ((i++))
-  done
-  read -p "Choose: " choice
+  if [ -z $choice ]; then
+    local i
+    i=1
+    for lg in ${loggroups[@]}; do
+      echo $i $lg
+      ((i++))
+    done
+    read -p "Choose: " choice
+  fi
   ((choice--))
-  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;' | less
+  awslogs get ${loggroups[$choice]} -s$farback --no-group --no-stream | perl -ne 'use POSIX "strftime"; use Date::Parse; my $line =$_; if ($line =~ /eventtime/i) { $line =~ /:\s+"([^"]+)"/; my $capture = $1; my $time = str2time($capture); my $conv = strftime("%FT%H:%M:%S\n", localtime $time); chomp $conv; $line =~ s/$capture/$conv/e; } print $line;'
 }
 
 function cloudtrails {

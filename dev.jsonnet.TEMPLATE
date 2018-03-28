@@ -5,7 +5,8 @@ local aws_env = [
   "GIT_USER=" + std.extVar("GIT_USER"),
   "GIT_PASSWORD=" + std.extVar("GIT_PASSWORD"),
   "SES_USER=" + std.extVar("SES_USER"),
-  "SES_PASSWORD=" + std.extVar("SES_PASSWORD")
+  "SES_PASSWORD=" + std.extVar("SES_PASSWORD"),
+  "CIRCLE_BRANCH=" + std.extVar("CIRCLE_BRANCH"),
 ];
 
 local newScrapyd(repository, command, env) = {
