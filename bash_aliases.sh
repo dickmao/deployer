@@ -56,7 +56,7 @@ function lambdalogs {
   local farback
   local loggroups
   local choice
-  farback=${1:-1h}
+  farback=${1:--1h}
   choice=${2:-}
   read -r -a loggroups <<< $(awslogs groups)
   if [ -z $choice ]; then

@@ -140,7 +140,6 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run: |
-          set -x
           . ./bash_aliases.sh
           inprog=0
           log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
@@ -151,8 +150,8 @@ jobs:
               let inprog=inprog+1
               sleep 30
             else
-              echo Found digest later than $log
-              echo $sshout
+              echo Found digest later than $(date -d @$log)
+              ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
               exit 0
             fi
           done
@@ -229,15 +228,14 @@ workflows:
             - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
-            - ecs-compose-up-except-dedupe
+            - ecs-compose-up-dedupe
       - spider-listingsproject:
           requires:
-            - ecs-compose-up-except-dedupe
+            - ecs-compose-up-dedupe
       - wait-for-digest:
           requires:
             - spider-newyork
             - spider-listingsproject
-            - ecs-compose-up-dedupe
       - ecs-compose-down:
           requires:
             - wait-for-digest
@@ -271,11 +269,9 @@ workflows:
             - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
-            - login-node
             - ecs-compose-up-dedupe
       - spider-listingsproject:
           requires:
-            - login-node
             - ecs-compose-up-dedupe
       - wait-for-digest:
           requires:
