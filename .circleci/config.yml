@@ -161,6 +161,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run:
+          shell: "/bin/bash"
           command: |
             . ./bash_aliases.sh
             inprog=0
@@ -185,7 +186,7 @@ jobs:
       - attach_workspace:
           at: ecs-state
       - run:
-          shell: "/bin/bash -e"
+          shell: "/bin/bash"
           command: |
             . ./bash_aliases.sh
             inprog=0
