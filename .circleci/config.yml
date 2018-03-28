@@ -153,7 +153,7 @@ jobs:
             source ./bash_aliases.sh
             docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
 
-  wait-for-digest:
+  confusion:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
     steps:
@@ -164,20 +164,44 @@ jobs:
           command: |
             . ./bash_aliases.sh
             inprog=0
+            log=$(ssh-ecs 0 date -r /tmp +%s)
+            while [ $inprog -lt 180 ] ; do
+              sshout=$(ssh-ecs 0 find -L /tmp/boo -newermt @$log)
+              if echo $sshout | grep -q digest ; then 
+                echo Found digest later than $(date -d @$log)
+                exit 0
+              fi
+              echo $inprog $log $sshout
+              let inprog=inprog+1
+              sleep 30
+            done
+            exit 1
+
+  wait-for-digest:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run:
+          shell: "/bin/bash -e"
+          command: |
+            . ./bash_aliases.sh
+            inprog=0
             log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
             while [ $inprog -lt 180 ] ; do
               sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log)
-              if ! echo $sshout | grep -q digest ; then 
-                echo $inprog $log $sshout
-                let inprog=inprog+1
-                sleep 30
-              else
+              if echo $sshout | grep -q digest ; then 
                 echo Found digest later than $(date -d @$log)
                 ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
-                return 0
+                exit 0
               fi
+              echo $inprog $log $sshout
+              let inprog=inprog+1
+              sleep 30
             done
-            return 1
+            exit 1
 
   success-function:
     docker:
@@ -240,6 +264,9 @@ workflows:
     jobs:
       - build-deployer-image
       - build-ecscli
+      - confusion:
+          requires:
+            - build-deployer-image
       - ecs-up:
           requires:
             - build-deployer-image
