@@ -118,7 +118,7 @@ jobs:
           source ./bash_aliases.sh
           # i believe i need sleep for the load balancer to get settled with the CNAME
           # Later, no.  Still happens with sleep 60.
-          docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; nc -z scrapyd 6800 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork || true"
+          docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; if [ $? == 137 ]; then scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork ; fi"
   
   spider-listingsproject: 
     docker:
@@ -145,7 +145,7 @@ jobs:
           inprog=0
           log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
           while [ $inprog -lt 180 ] && ! ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log | grep -q digest ; do sleep 30 ; let inprog=inprog+1 ; echo $inprog; done
-          echo Found digest later than $(date -d @$log)
+          echo Found digest later than $log
           ssh-ecs 0 ls -ldc /efs/var/lib/scrapyd/items/tutorial/newyork/digest
 
   success-function:
