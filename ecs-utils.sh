@@ -69,7 +69,7 @@ EOF
   fi
   SES_USER=${SES_USER:-$(aws configure --profile ses get aws_access_key_id)}
   SES_PASSWORD=${SES_PASSWORD:-$(aws configure --profile ses get aws_secret_access_key)}
-  python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD}
+  python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD} --var CIRCLE_BRANCH=${CIRCLE_BRANCH:-}
 }
 
 function getServiceConfigs {
