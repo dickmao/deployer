@@ -117,7 +117,8 @@ jobs:
           set -x
           source ./bash_aliases.sh
           # i believe i need sleep for the load balancer to get settled with the CNAME
-          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork"
+          # Later, no.  Still happens with sleep 60.
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; nc -z scrapyd 6800 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork || true"
   
   spider-listingsproject: 
     docker:
@@ -129,7 +130,7 @@ jobs:
       - run: |
           set -x
           source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 60 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
+          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
 
   wait-for-digest:
     docker:
@@ -216,20 +217,17 @@ workflows:
       - ecs-compose-up-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
-      # the spiders can run parallel to their antecedents
-      # but I am getting exit 137 for spider-newyork for some reason
       - spider-newyork:
           requires:
-            - login-node
-            - ecs-compose-up-dedupe
+            - ecs-compose-up-except-dedupe
       - spider-listingsproject:
           requires:
-            - login-node
-            - ecs-compose-up-dedupe
+            - ecs-compose-up-except-dedupe
       - wait-for-digest:
           requires:
             - spider-newyork
             - spider-listingsproject
+            - ecs-compose-up-dedupe
       - ecs-compose-down:
           requires:
             - wait-for-digest
