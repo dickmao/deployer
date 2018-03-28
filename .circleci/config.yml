@@ -264,13 +264,13 @@ workflows:
     jobs:
       - build-deployer-image
       - build-ecscli
-      - confusion:
-          requires:
-            - build-deployer-image
       - ecs-up:
           requires:
             - build-deployer-image
             - build-ecscli
+      - confusion:
+          requires:
+            - ecs-up
       - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
