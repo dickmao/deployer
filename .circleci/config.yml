@@ -14,25 +14,27 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
 
-      - run: |
-          set -x
-          eval `aws ecr get-login --no-include-email --region $AWS_REGION`
-          docker build --build-arg aws_region=${AWS_REGION} -t circleci:deployer .circleci/images
-          docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
-          docker push 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+      - run: 
+          command: |
+            set -x
+            eval `aws ecr get-login --no-include-email --region $AWS_REGION`
+            docker build --build-arg aws_region=${AWS_REGION} -t circleci:deployer .circleci/images
+            docker tag circleci:deployer 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+            docker push 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
 
   build-ecscli:
     docker:
       - image: circleci/golang:1.9.2
     steps:
-      - run: |
-          set -x
-          # Thanks @bobziuchkovski
-          git config --global url."https://${GIT_PASSWORD}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-          mkdir -p /go/src/github.com/aws
-          (cd /go/src/github.com/aws ; git clone -b my-branch https://github.com/dickmao/amazon-ecs-cli.git)
-          # shlomi noach, code.openark.org
-          (cd /go/src/github.com/aws/amazon-ecs-cli ; go get ./... && make)
+      - run: 
+          command: |
+            set -x
+            # Thanks @bobziuchkovski
+            git config --global url."https://${GIT_PASSWORD}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+            mkdir -p /go/src/github.com/aws
+            (cd /go/src/github.com/aws ; git clone -b my-branch https://github.com/dickmao/amazon-ecs-cli.git)
+            # shlomi noach, code.openark.org
+            (cd /go/src/github.com/aws/amazon-ecs-cli ; go get ./... && make)
       - save_cache:
           key: ecscli-{{ checksum "/go/src/github.com/aws/amazon-ecs-cli/.git/index" }}
           paths: 
@@ -48,9 +50,10 @@ jobs:
       - checkout
       - restore_cache:
           keys: ecscli
-      - run: |
-          set -x
-          ./ecs-up.sh
+      - run:
+          command: |
+            set -x
+            ./ecs-up.sh
       - persist_to_workspace:
           root: ecs-state
           paths:
@@ -68,9 +71,10 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          ./ecs-compose-up.sh -x dedupe
+      - run:
+          command: |
+            set -x
+            ./ecs-compose-up.sh -x dedupe
       - persist_to_workspace:
           root: ecs-state
           paths:
@@ -85,13 +89,15 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          source ./bash_aliases.sh
-          # I need /var/lib/scrapyd to be made by ecs-compose-up-except-dedupe
-          # I can now touch digest there so that dedupe doesn't go after any existing Data
-          for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
-          ./ecs-compose-up.sh -s dedupe
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            # I need /var/lib/scrapyd to be made by ecs-compose-up-except-dedupe
+            # I can now touch digest there so that dedupe doesn't go after any existing Data
+            # Then when/if spiders update Marker, dedupe will act en masse
+            for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
+            ./ecs-compose-up.sh -s dedupe
 
   login-node:
     docker:
@@ -102,9 +108,10 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          source ./bash_aliases.sh
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
 
   spider-newyork:
     docker:
@@ -113,12 +120,13 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          source ./bash_aliases.sh
-          # i believe i need sleep for the load balancer to get settled with the CNAME
-          # Later, no.  Still happens with sleep 60.
-          docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; if [ $? -eq 137 ] \; then scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; fi"
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            # i believe i need sleep for the load balancer to get settled with the CNAME
+            # Later, no.  Still happens with sleep 60.
+            docke-ecs scrapyd-crawl "set -x \; ./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; if [ $? -eq 137 ] \; then scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork \; fi"
   
   spider-listingsproject: 
     docker:
@@ -127,10 +135,11 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          source ./bash_aliases.sh
-          docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- sleep 0 \; scrapyd-client -t http://scrapyd:6800 schedule -p tutorial listingsproject"
 
   wait-for-digest:
     docker:
@@ -139,23 +148,24 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - run: |
-          . ./bash_aliases.sh
-          inprog=0
-          log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
-          while [ $inprog -lt 180 ] ; do
-            sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log)
-            if ! echo $sshout | grep -q digest ; then 
-              echo $inprog $log $sshout
-              let inprog=inprog+1
-              sleep 30
-            else
-              echo Found digest later than $(date -d @$log)
-              ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
-              exit 0
-            fi
-          done
-          exit 1
+      - run:
+          command: |
+            . ./bash_aliases.sh
+            inprog=0
+            log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
+            while [ $inprog -lt 180 ] ; do
+              sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log)
+              if ! echo $sshout | grep -q digest ; then 
+                echo $inprog $log $sshout
+                let inprog=inprog+1
+                sleep 30
+              else
+                echo Found digest later than $(date -d @$log)
+                ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
+                exit 0
+              fi
+            done
+            exit 1
 
   success-function:
     docker:
@@ -164,10 +174,11 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          source ./bash_aliases.sh
-          docke-ecs play-email bin/success-function
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            docke-ecs play-email bin/success-function
 
   ecs-compose-down:
     docker:
@@ -181,9 +192,10 @@ jobs:
           keys: ecscli
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          ./ecs-compose-down.sh
+      - run:
+          command: |
+            set -x
+            ./ecs-compose-down.sh
       - persist_to_workspace:
           root: ecs-state
           paths:
@@ -199,9 +211,10 @@ jobs:
       - checkout
       - attach_workspace:
           at: ecs-state
-      - run: |
-          set -x
-          ./ecs-down.sh
+      - run:
+          command: |
+            set -x
+            ./ecs-down.sh
       - persist_to_workspace:
           root: ecs-state
           paths:
