@@ -166,7 +166,7 @@ jobs:
             . ./bash_aliases.sh
             inprog=0
             log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
-            log=$(echo "$log//[$'\t\r\n']}")
+            log=$(echo "${log//[$'\t\r\n']}")
             while [ $inprog -lt 180 ] ; do
               sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt @$log)
               if echo $sshout | grep -q digest ; then 
