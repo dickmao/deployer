@@ -148,6 +148,16 @@ function ssh-mongo {
     VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
 }
 
+function wrap-ssh-my() {
+    local clusterkey
+    clusterkey=$1
+    shift
+    ip=$1
+    # parent variables like clustersvc2ip don't get updated in subshells
+    clustersvc2ip["$clusterkey"]=$ip
+    ssh-my "$@"
+}
+
 function ssh-my() {
     ssh -x -o StrictHostKeyChecking=no -t ec2-user@$*
 }
@@ -351,7 +361,7 @@ function dockl-ecs {
   vernum=$(get-vernum ${2:-})
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
-    ssh-my $ip dockl$tail $svc
+    wrap-ssh-my "$vernum:$svc" $ip dockl$tail $svc
   fi
 }
 
@@ -361,7 +371,7 @@ function docke-ecs {
   cmd="$@"
   ip=$(get-ip-for-svc $svc)
   if [ ! -z $ip ]; then
-    ssh-my $ip docke $svc $cmd
+    wrap-ssh-my "$vernum:$svc" $ip docke $svc $cmd
   fi
 }
 
@@ -370,7 +380,7 @@ function dockr-ecs {
   vernum=$(get-vernum ${2:-})
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
-    ssh-my $ip dockr $svc  
+    wrap-ssh-my "$vernum:$svc" $ip dockr $svc  
   fi
 }
 
@@ -383,16 +393,13 @@ function ssh-ecs {
   local ip
   ip=""  
   if [[ $svc =~ $re ]]; then
-    # parent variables like clustersvc2ip don't get updated in subshells
     ip=$(get-ip-for-index $svc $vernum)
   else
-    # parent variables like clustersvc2ip don't get updated in subshells
     ip=$(get-ip-for-svc $svc $vernum)
   fi
   if [ -z $ip ]; then
     echo what is $vernum
   else
-    clustersvc2ip["${vernum}:${svc}"]=$ip
-    ssh-my $ip $cmd
+    wrap-ssh-my "$vernum:$svc" $ip $cmd
   fi
 }
