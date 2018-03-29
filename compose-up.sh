@@ -109,7 +109,7 @@ for k in "${order_matters[@]}" ; do
     if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 
        ( [ ${#except[@]} -ne 0 ] && ! test "${except[$k]+isset}" ) ||
        ( [ ${#only[@]} -eq 0 ] && [ ${#except[@]} -eq 0 ] ) ; then
-        $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 5
+        $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json service up$elb$options --deployment-max-percent 200 --deployment-min-healthy-percent 50 --timeout 7
     fi
 done
 #for arn in $(aws elbv2 describe-load-balancers | jq -r '.LoadBalancers[] | .LoadBalancerArn') ; do 
