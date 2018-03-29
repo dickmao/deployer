@@ -37,6 +37,14 @@ TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`
 if [ "$TASKDEF" != "null" ]; then
   aws ecs deregister-task-definition --task-definition $TASKDEF
 fi
+
+IFS=$'\n'
+for trailarn in $(aws cloudformation describe-stack-resources --stack-name $STACK | jq -r '.StackResources[] | select(.ResourceType=="AWS::CloudTrail::Trail") | .PhysicalResourceId'); do
+  # the question is though, will this *flush* whatever has yet to be written to bucket
+  aws cloudtrail stop-logging --name $trailarn
+done
+unset IFS
+
 for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK |jq -r '.StackResources | map(select(.ResourceType=="AWS::S3::Bucket")) | .[] | .PhysicalResourceId '); do
   aws s3 rm s3://$bucket/ --recursive || true
 done

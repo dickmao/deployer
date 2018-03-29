@@ -306,9 +306,13 @@ function get-ip-for-index {
     echo ${clustersvc2ip["${vernum}:${svc}"]}
     return
   fi
-  ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
-  clustersvc2ip["${vernum}:${svc}"]=$ip
-  echo $ip
+  local instances
+  instances=$(aws ecs list-container-instances --cluster $(get-cluster $vernum) 2>/dev/null | jq -r '.[] | .[] ' 2>/dev/null)
+  if [ ! -z $instances ] ; then
+    ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $instances | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
+    clustersvc2ip["${vernum}:${svc}"]=$ip
+    echo $ip
+  fi
 }
   
 
@@ -376,17 +380,19 @@ function ssh-ecs {
   cmd="$@"
   vernum=$(get-vernum)
   re='^[0-9]+$' # yes, i have to assign it first.  See SO Charles Duffy
+  local ip
+  ip=""  
   if [[ $svc =~ $re ]]; then
     # parent variables like clustersvc2ip don't get updated in subshells
     ip=$(get-ip-for-index $svc $vernum)
-    clustersvc2ip["${vernum}:${svc}"]=$ip
-    ssh-my $ip $cmd
   else
     # parent variables like clustersvc2ip don't get updated in subshells
     ip=$(get-ip-for-svc $svc $vernum)
+  fi
+  if [ -z $ip ]; then
+    echo what is $vernum
+  else
     clustersvc2ip["${vernum}:${svc}"]=$ip
-    if [ ! -z $ip ]; then
-      ssh-my $ip $cmd
-    fi
+    ssh-my $ip $cmd
   fi
 }
