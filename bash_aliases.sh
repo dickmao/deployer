@@ -308,7 +308,7 @@ function get-ip-for-index {
   fi
   local instances
   instances=$(aws ecs list-container-instances --cluster $(get-cluster $vernum) 2>/dev/null | jq -r '.[] | .[] ' 2>/dev/null)
-  if [ ! -z $instances ] ; then
+  if [ ! -z "$instances" ] ; then
     ip=$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $instances | jq -r ".containerInstances[$svc] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
     clustersvc2ip["${vernum}:${svc}"]=$ip
     echo $ip
