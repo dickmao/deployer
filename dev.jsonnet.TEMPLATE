@@ -6,7 +6,7 @@ local aws_env = [
   "GIT_PASSWORD=" + std.extVar("GIT_PASSWORD"),
   "SES_USER=" + std.extVar("SES_USER"),
   "SES_PASSWORD=" + std.extVar("SES_PASSWORD"),
-  "CIRCLE_BRANCH=" + std.extVar("CIRCLE_BRANCH"),
+  "GIT_BRANCH=" + std.extVar("GIT_BRANCH"),
 ];
 
 local newScrapyd(repository, command, env) = {
@@ -33,7 +33,7 @@ local newMongo(repository, env) = {
 
 local newPlayApp(repository, env) = {
   # cannot figure out how to do an unprefixed image with sbt native packager
-  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:" + std.extVar("GIT_BRANCH"),
   mem_limit: "512m",
   ports: [ "80:9000" ],
   environment: [ "REDIS_HOST=redis" ] + env,

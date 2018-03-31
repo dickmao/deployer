@@ -48,10 +48,6 @@ function exevents {
   echo $json | jq -r '.StackEvents[] | select(.ResourceStatus=="CREATE_FAILED") | .ResourceStatusReason' | tail -1
 }
 
-function skan {
-  find $1 -type f | xargs stat --format '%Y :%y %n' | sort -nr | cut -d: -f2- | head -50 | tac
-}
-
 function lambdalogs {
   local farback
   local loggroups
@@ -370,6 +366,8 @@ function docke-ecs {
   cmd="$@"
   ip=$(get-ip-for-svc $svc)
   if [ ! -z $ip ]; then
+    local vernum
+    vernum=$(get-vernum)
     wrap-ssh-my "$vernum:$svc" $ip docke $svc $cmd
   fi
 }
