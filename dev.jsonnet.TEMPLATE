@@ -41,7 +41,7 @@ local newPlayApp(repository, env) = {
 
 local newPlayEmail(repository, env) = {
   # cannot figure out how to do an unprefixed image with sbt native packager
-  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT",
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:" + std.extVar("GIT_BRANCH"),
   environment: [ "REDIS_HOST=redis" ] + aws_env + env,
 };
 
