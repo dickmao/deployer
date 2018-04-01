@@ -42,7 +42,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
-                                { 'Key': 'Branch', 'Value': os.environ.get('CIRCLE_BRANCH') or "dev" },
+                                { 'Key': 'Branch', 'Value': os.environ.get('GIT_BRANCH') or "dev" },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))

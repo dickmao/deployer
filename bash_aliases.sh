@@ -48,10 +48,6 @@ function exevents {
   echo $json | jq -r '.StackEvents[] | select(.ResourceStatus=="CREATE_FAILED") | .ResourceStatusReason' | tail -1
 }
 
-function skan {
-  find $1 -type f | xargs stat --format '%Y :%y %n' | sort -nr | cut -d: -f2- | head -50 | tac
-}
-
 function lambdalogs {
   local farback
   local loggroups
@@ -136,14 +132,13 @@ fi
 function ssh-mongo {
     local vernum
     vernum=$(get-vernum ${1:-});
-    if ! q_cluster_changed $vernum 0 ; then
+    if test "${clustersvc2ip[${vernum}:mongo]+isset}" && ! q_cluster_changed $vernum 0 ; then
       VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
       return
     fi
     VERNUM=$vernum scp-ecs $HOME/.ssh/id_rsa .ssh/
-    # FIXME needs to be by cluster
     local mongo
-    mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r '.Reservations[] | select(.Instances[] | select(.State.Code==16))| .Instances[-1] | .PrivateIpAddress ')
+    mongo=$(aws ec2 describe-instances --filters "Name=tag:Name,Values=PrimaryReplicaNode0" | jq -r ".Reservations[] | select(.Instances[] | select(.State.Code==16))| .Instances[-1] | select(.Tags[] | select(.Key==\"aws:cloudformation:stack-name\") | select(.Value | contains(\"-${vernum}\"))) | .PrivateIpAddress ")
     clustersvc2ip["${vernum}:mongo"]=$mongo
     VERNUM=$vernum ssh-ecs 0 ssh ${clustersvc2ip["${vernum}:mongo"]}
 }
@@ -371,6 +366,8 @@ function docke-ecs {
   cmd="$@"
   ip=$(get-ip-for-svc $svc)
   if [ ! -z $ip ]; then
+    local vernum
+    vernum=$(get-vernum)
     wrap-ssh-my "$vernum:$svc" $ip docke $svc $cmd
   fi
 }

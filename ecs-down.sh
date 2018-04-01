@@ -41,7 +41,7 @@ fi
 IFS=$'\n'
 for trailarn in $(aws cloudformation describe-stack-resources --stack-name $STACK | jq -r '.StackResources[] | select(.ResourceType=="AWS::CloudTrail::Trail") | .PhysicalResourceId'); do
   # the question is though, will this *flush* whatever has yet to be written to bucket
-  aws cloudtrail stop-logging --name $trailarn
+  aws cloudtrail stop-logging --name $trailarn || true
 done
 unset IFS
 

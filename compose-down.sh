@@ -29,8 +29,8 @@ else
   source ${wd}/ecs-utils.sh
 fi
 
+rendered_string=$(render_string $mode)
 if [ $mode == "dev" ]; then
-  rendered_string=$(render_string $mode)
   if [ ${#only[@]} -ne 0 ] ; then
       for s in "${!only[@]}"; do
           # I have issues with volume mounts with --force-recreate (scrapyd-seed)
@@ -46,6 +46,7 @@ EOF"
   exit 0
 fi
 
+printf "$rendered_string" > $STATEDIR/docker-compose.$STACK.json
 eval $(getServiceConfigs)
 
 declare -A extant

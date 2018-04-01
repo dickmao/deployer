@@ -6,7 +6,7 @@ local aws_env = [
   "GIT_PASSWORD=" + std.extVar("GIT_PASSWORD"),
   "SES_USER=" + std.extVar("SES_USER"),
   "SES_PASSWORD=" + std.extVar("SES_PASSWORD"),
-  "CIRCLE_BRANCH=" + std.extVar("CIRCLE_BRANCH"),
+  "GIT_BRANCH=" + std.extVar("GIT_BRANCH"),
 ];
 
 local newScrapyd(repository, command, env) = {
@@ -33,7 +33,7 @@ local newMongo(repository, env) = {
 
 local newPlayApp(repository, env) = {
   # cannot figure out how to do an unprefixed image with sbt native packager
-  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:0.1-SNAPSHOT",
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/play-app:" + std.extVar("GIT_BRANCH"),
   mem_limit: "512m",
   ports: [ "80:9000" ],
   environment: [ "REDIS_HOST=redis" ] + env,
@@ -41,7 +41,7 @@ local newPlayApp(repository, env) = {
 
 local newPlayEmail(repository, env) = {
   # cannot figure out how to do an unprefixed image with sbt native packager
-  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:0.1-SNAPSHOT",
+  image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/success-function:" + std.extVar("GIT_BRANCH"),
   environment: [ "REDIS_HOST=redis" ] + aws_env + env,
 };
 
@@ -64,12 +64,12 @@ local composeUp(repository) = {
     mongo: self["mongo_volume_mounted_service"] + newMongo(repository, []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
-      mem_limit: "50m",
+      mem_limit: "100m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
     },
     "redis-depopulate": self["base_service"] + {
       image: repository + "redis-populate:latest",
-      mem_limit: "50m",
+      mem_limit: "100m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
     "play-app": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
@@ -82,12 +82,12 @@ local composeUp(repository) = {
     },
     "scrapyd-deploy": self["base_service"] + {
       image: repository + "scrapyd-deploy:latest",
-      mem_limit: "50m",
+      mem_limit: "100m",
       command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; scrapyd-deploy aws'",
     },
     "scrapyd-crawl": self["scrapyd_volume_mounted_service"] + {
       image: repository + "scrapyd-deploy:latest",
-      mem_limit: "50m",
+      mem_limit: "100m",
       command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; cron -f'",
     },
     "dedupe-on-demand": self["scrapyd_volume_mounted_service"] + {
