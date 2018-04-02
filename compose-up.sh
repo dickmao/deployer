@@ -7,12 +7,18 @@ while [[ $# -gt 0 ]] ; do
   case "$key" in
       -x|--except-service-prefix)
       svc=$2
+      if [ ${mode:-dev} == "ecs" ]; then
+        svc=${svc%%[![:alnum:]]*}
+      fi
       except+=([$svc]=1)
       shift
       shift
       ;;
       -s|--service-prefix)
       svc=$2
+      if [ ${mode:-dev} == "ecs" ]; then
+        svc=${svc%%[![:alnum:]]*}
+      fi
       only+=([$svc]=1)
       shift
       shift
@@ -23,6 +29,10 @@ while [[ $# -gt 0 ]] ; do
       ;;
       -m|--mode)
       mode=$2
+      if [ ${#only[@]} != 0 ] || [ ${#except[@]} != 0 ]; then
+        echo "Error: -m must come first"
+        exit 2
+      fi
       shift
       shift
       ;;
@@ -81,11 +91,13 @@ eval $(getServiceConfigs)
 
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
 ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
-order_matters=("${!hofa[@]}")
-IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
-unset IFS
+#order_matters=("${!hofa[@]}")
+#IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
+#unset IFS
 # order should not matter but RegisterEcsServiceDns not getting CreateService from scrapyd going first
-for k in "${order_matters[@]}" ; do
+# Later I think this has more to do with scrapyd-crawl blowing up due to mem_limit
+#for k in "${order_matters[@]}" ; do
+for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
 
     # currently only handle single port (other possibilities include ranges 9001-9005)

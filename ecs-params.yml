@@ -9,3 +9,5 @@ task_definition:
       essential: false
     corenlp:
       essential: true
+    mongo-flush:
+      essential: false

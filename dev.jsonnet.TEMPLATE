@@ -17,18 +17,19 @@ local newScrapyd(repository, command, env) = {
   environment: aws_env + env
 };
 
+local newMongo(repository, command, env) = {
+  image: "mongo:3.4.13-jessie",
+  mem_limit: "500m",
+  ports: [ "27017:27017" ],
+  command: command,
+  environment: env,
+};
+
 local newRedis(repository, env) = {
   image: "redis",
   mem_limit: "300m",
   ports: [ "6379:6379" ],
-  environment: env
-};
-
-local newMongo(repository, env) = {
-  image: "mongo:3.4.13-jessie",
-  mem_limit: "500m",
-  ports: [ "27017:27017" ],
-  environment: env
+  environment: env,
 };
 
 local newPlayApp(repository, env) = {
@@ -61,7 +62,7 @@ local composeUp(repository) = {
       volumes: [ "mongo:/var/lib/mongodb" ],
     },
     redis: self["redis_volume_mounted_service"] + newRedis(repository, []),
-    mongo: self["mongo_volume_mounted_service"] + newMongo(repository, []),
+    mongo: self["mongo_volume_mounted_service"] + newMongo(repository, [ "mongod" ], []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "100m",

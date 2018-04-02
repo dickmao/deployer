@@ -1,6 +1,7 @@
 local play_env = [ 
   "MONGO_HOST=db0:27017,db1:27017,db2",
   "MONGO_AUTH_STRING=" + std.extVar("MONGO_AUTH_STRING"),
+  "EIP_ADDRESS=" + std.extVar("EIP_ADDRESS"),
 ];
 local devJsonnetTemplate = import "./dev.jsonnet.TEMPLATE";
 local repository="303634175659.dkr.ecr.us-east-2.amazonaws.com/";
@@ -17,6 +18,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     },
     redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
     mongo:: self["mongo_volume_mounted_service"],
+    "mongo-flush": self["base_service"] + devJsonnetTemplate.newMongo(repository, ["mongo", "mongodb://$${MONGO_AUTH_STRING}$${MONGO_HOST}:27017/admin?replicaSet=s0", "--eval", "'db.fsyncLock()'"] , play_env),
     "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env),
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
