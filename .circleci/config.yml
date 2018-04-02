@@ -265,7 +265,8 @@ workflows:
             - spider-listingsproject
       - hold:
           type: approval
-          requires: wait-for-digest
+          requires: 
+            - wait-for-digest
       - ecs-compose-down:
           requires:
             - hold
