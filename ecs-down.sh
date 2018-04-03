@@ -32,7 +32,7 @@ if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
 fi
 
 if [ -z ${nosnap:-} ]; then
-  ${wd}/ecs-compose-up.sh -s mongo
+  ${wd}/ecs-compose-up.sh -s mongo-flush
   python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
 fi
 
