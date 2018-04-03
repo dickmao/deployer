@@ -766,7 +766,7 @@
                                   "start on stopped rc RUNLEVEL=[345]\n",
                                   "stop on shutdown\n",
                                   "\n",
-                                  "exec /usr/local/bin/ecssd_agent --cw-send-events ", { "Fn::ImportValue": { "Fn::Sub": "${AWS::StackName}-PlayAppEIP" } }, " ", {"Ref": "EcsCluster"}, ".internal >> /var/log/ecssd_agent.log 2>&1\n",
+                                  "exec /usr/local/bin/ecssd_agent --cw-send-events ", {"Ref": "EcsCluster"}, ".internal >> /var/log/ecssd_agent.log 2>&1\n",
                                   "respawn\n"
                                 ]]},
                                 "mode"    : "000644",
