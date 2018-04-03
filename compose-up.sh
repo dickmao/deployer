@@ -7,12 +7,18 @@ while [[ $# -gt 0 ]] ; do
   case "$key" in
       -x|--except-service-prefix)
       svc=$2
+      if [ ${mode:-dev} == "ecs" ]; then
+        svc=${svc%%[![:alnum:]]*}
+      fi
       except+=([$svc]=1)
       shift
       shift
       ;;
       -s|--service-prefix)
       svc=$2
+      if [ ${mode:-dev} == "ecs" ]; then
+        svc=${svc%%[![:alnum:]]*}
+      fi
       only+=([$svc]=1)
       shift
       shift
@@ -23,6 +29,10 @@ while [[ $# -gt 0 ]] ; do
       ;;
       -m|--mode)
       mode=$2
+      if [ ${#only[@]} != 0 ] || [ ${#except[@]} != 0 ]; then
+        echo "Error: -m must come first"
+        exit 2
+      fi
       shift
       shift
       ;;
@@ -66,8 +76,16 @@ EOF"
 fi
 
 printf "$rendered_string" > $STATEDIR/docker-compose.$STACK.json
+ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
+ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 
-eval $(getServiceConfigs)
+eval $(getTaskConfigs)
+for k in "${!hofb[@]}" ; do
+    options=$(echo "${hofb[$k]}" | sed -e 's/|/ --service-configs /g')
+    if [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ; then
+        $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json up$options
+    fi
+done
 
 # for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[] ') ; do
 #     bn=$(basename $olddef)
@@ -79,13 +97,15 @@ eval $(getServiceConfigs)
 #     fi
 #done
 
-ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
-ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
-order_matters=("${!hofa[@]}")
-IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
-unset IFS
+#order_matters=("${!hofa[@]}")
+#IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
+#unset IFS
 # order should not matter but RegisterEcsServiceDns not getting CreateService from scrapyd going first
-for k in "${order_matters[@]}" ; do
+# Later I think this has more to do with scrapyd-crawl blowing up due to mem_limit
+#for k in "${order_matters[@]}" ; do
+
+eval $(getServiceConfigs)
+for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
 
     # currently only handle single port (other possibilities include ranges 9001-9005)
@@ -106,6 +126,7 @@ for k in "${order_matters[@]}" ; do
         ECSROLE=$(aws iam list-roles | jq -r ".Roles[] | select(.RoleName | contains(\"${STACK}-ECSRole\")) | .RoleName")
         elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
     fi
+
     if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 
        ( [ ${#except[@]} -ne 0 ] && ! test "${except[$k]+isset}" ) ||
        ( [ ${#only[@]} -eq 0 ] && [ ${#except[@]} -eq 0 ] ) ; then

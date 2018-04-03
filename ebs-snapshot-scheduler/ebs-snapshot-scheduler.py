@@ -20,15 +20,22 @@ import os
 import boto3
 
 import pytz
-
+from git import Repo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logger = logging.getLogger()
 
+def git_branch():
+    branch = os.environ.get('GIT_BRANCH') or os.environ.get('CIRCLE_BRANCH')
+    if branch:
+        return branch
+    return Repo("./", search_parent_directories=True).active_branch.name
+
 def backup_instance(instance_obj, region, custom_tag_name, dry=False):
     result = []
+    # jump on ReplicaNode0 and run db.fsyncLock()
     ec2_resource = boto3.resource('ec2', region_name=region)
     for mapping in instance_obj.block_device_mappings:
         if instance_obj.root_device_name == mapping['DeviceName']:
@@ -42,7 +49,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
-                                { 'Key': 'Branch', 'Value': os.environ.get('GIT_BRANCH') or "dev" },
+                                { 'Key': 'Branch', 'Value': git_branch() },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))

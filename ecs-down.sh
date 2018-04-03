@@ -31,7 +31,12 @@ if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
   exit 0
 fi
 
+if [ -z ${nosnap:-} ]; then
+  ${wd}/ecs-compose-up.sh -s mongo-flush
+  python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
+fi
 
+${wd}/ecs-compose-down.sh
 
 TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
 if [ "$TASKDEF" != "null" ]; then
@@ -48,10 +53,6 @@ unset IFS
 for bucket in $(aws cloudformation describe-stack-resources --stack-name $STACK |jq -r '.StackResources | map(select(.ResourceType=="AWS::S3::Bucket")) | .[] | .PhysicalResourceId '); do
   aws s3 rm s3://$bucket/ --recursive || true
 done
-
-if [ -z ${nosnap:-} ]; then
-  python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
-fi
 
 # https://alestic.com/2016/09/aws-route53-wipe-hosted-zone/
 hosted_zone_id=$(

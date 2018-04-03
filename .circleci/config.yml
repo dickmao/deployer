@@ -263,9 +263,13 @@ workflows:
           requires:
             - spider-newyork
             - spider-listingsproject
+      - hold:
+          type: approval
+          requires: 
+            - wait-for-digest
       - ecs-compose-down:
           requires:
-            - wait-for-digest
+            - hold
       - ecs-down:
           requires:
             - ecs-compose-down

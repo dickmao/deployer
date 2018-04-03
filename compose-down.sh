@@ -6,12 +6,19 @@ while [[ $# -gt 0 ]] ; do
   case "$key" in
       -s|--service-prefix)
       svc=$2
+      if [ ${mode:-dev} == "ecs" ]; then
+        svc=${svc%%[![:alnum:]]*}
+      fi
       only+=([$svc]=1)
       shift
       shift
       ;;
       -m|--mode)
       mode=$2
+      if [ ${#only[@]} != 0 ] ; then
+        echo "Error: -m must come first"
+        exit 2
+      fi
       shift
       shift
       ;;

@@ -7,5 +7,6 @@ task_definition:
       essential: false
     scrapyd-seed:
       essential: false
-    corenlp:
+    mongo-flush:
+      task: true
       essential: true
