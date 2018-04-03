@@ -7,3 +7,6 @@ task_definition:
       essential: false
     scrapyd-seed:
       essential: false
+    mongo-flush:
+      task: true
+      essential: true

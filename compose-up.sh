@@ -76,9 +76,15 @@ EOF"
 fi
 
 printf "$rendered_string" > $STATEDIR/docker-compose.$STACK.json
+ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
+ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 
-eval $(getServiceConfigs)
-
+eval $(getTaskConfigs)
+for k in "${!hofb[@]}" ; do
+    options=$(echo "${hofb[$k]}" | sed -e 's/|/ --service-configs /g')
+    $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json create$options
+done
+exit 0
 # for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[] ') ; do
 #     bn=$(basename $olddef)
 #     td=${bn%:*}
@@ -89,14 +95,14 @@ eval $(getServiceConfigs)
 #     fi
 #done
 
-ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
-ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 #order_matters=("${!hofa[@]}")
 #IFS=$'\n' order_matters=($(sort <<<"${order_matters[*]}"))
 #unset IFS
 # order should not matter but RegisterEcsServiceDns not getting CreateService from scrapyd going first
 # Later I think this has more to do with scrapyd-crawl blowing up due to mem_limit
 #for k in "${order_matters[@]}" ; do
+
+eval $(getServiceConfigs)
 for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
 

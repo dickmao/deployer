@@ -80,14 +80,30 @@ EOF
 }
 
 function getServiceConfigs {
+  eval $(getTaskConfigs)
   declare -A hofa
   for s0 in $(docker-compose -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do
       s0p=${s0%%[![:alnum:]]*}
-      if test "${hofa[$s0p]+isset}"; then
-          hofa[$s0p]="${hofa[$s0p]}|$s0"
-      else
-          hofa+=([$s0p]="|$s0")
+      if ! test "${hofb[$s0p]+isset}"; then
+          if test "${hofa[$s0p]+isset}"; then
+              hofa[$s0p]="${hofa[$s0p]}|$s0"
+          else
+              hofa+=([$s0p]="|$s0")
+          fi
       fi
   done
   declare -p hofa
+}
+
+function getTaskConfigs {
+  declare -A hofb
+  for s0 in $(cat ${wd}/ecs-params.yml | yq -r '.task_definition | .services | to_entries[] | select(.value.task == true) | .key'); do
+      s0p=${s0%%[![:alnum:]]*}
+      if test "${hofb[$s0p]+isset}"; then
+          hofb[$s0p]="${hofb[$s0p]}|$s0"
+      else
+          hofb+=([$s0p]="|$s0")
+      fi
+  done
+  declare -p hofb
 }
