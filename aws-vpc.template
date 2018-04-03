@@ -1754,7 +1754,7 @@
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
-                "Domain": "vpc",
+                "Domain": "vpc"
             }
         },
         "NAT1EIP": {
