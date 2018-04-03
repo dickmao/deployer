@@ -765,6 +765,7 @@
                                   "description \"Amazon EC2 Container Service Discovery\"\n",
                                   "start on stopped rc RUNLEVEL=[345]\n",
                                   "stop on shutdown\n",
+                                  "eip ", { "Fn::ImportValue": { "Fn::Sub": "${AWS::StackName}-PlayAppEIP" } }, "\n",
                                   "\n",
                                   "exec /usr/local/bin/ecssd_agent ", {"Ref": "EcsCluster"}, ".internal >> /var/log/ecssd_agent.log 2>&1\n",
                                   "respawn\n"

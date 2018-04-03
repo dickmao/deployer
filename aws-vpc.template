@@ -1750,6 +1750,13 @@
                 }
             }
         },
+        "PlayAppEIP": {
+            "DependsOn": "VPCGatewayAttachment",
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc",
+            }
+        },
         "NAT1EIP": {
             "Condition": "PrivateSubnetsCondition",
             "DependsOn": "VPCGatewayAttachment",
@@ -2266,6 +2273,17 @@
         }
     },
     "Outputs": {
+        "PlayAppEIP": {
+            "Description": "Assign me",
+            "Value": {
+                "Ref": "PlayAppEIP"
+            },
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-PlayAppEIP"
+                }
+            }
+        },
         "NAT1EIP": {
             "Condition": "PrivateSubnetsCondition",
             "Description": "NAT 1 IP address",
