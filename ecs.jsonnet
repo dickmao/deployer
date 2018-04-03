@@ -18,7 +18,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     },
     redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
     mongo:: self["mongo_volume_mounted_service"],
-    "mongo-flush": self["base_service"] + devJsonnetTemplate.newMongo(repository, ["mongo", "mongodb://$${MONGO_AUTH_STRING}$${MONGO_HOST}:27017/admin?replicaSet=s0", "--eval", "'db.fsyncLock()'"] , play_env),
+    "mongo-flush": self["base_service"] + devJsonnetTemplate.newMongo(repository, ["mongo", "mongodb://${MONGO_AUTH_STRING}${MONGO_HOST}:27017/admin?replicaSet=s0", "--eval", "'db.fsyncLock()'"] , play_env),
     "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env),
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
