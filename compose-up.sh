@@ -82,9 +82,11 @@ ECSCLIBIN="$ECSCLIPATH/bin/local/ecs-cli"
 eval $(getTaskConfigs)
 for k in "${!hofb[@]}" ; do
     options=$(echo "${hofb[$k]}" | sed -e 's/|/ --service-configs /g')
-    $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json create$options
+    if [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ; then
+        $ECSCLIBIN compose$debug --cluster $STACK --ecs-params $wd/ecs-params.yml -p '' -f $STATEDIR/docker-compose.$STACK.json up$options
+    fi
 done
-exit 0
+
 # for olddef in $(aws ecs list-task-definitions | jq -r ' .taskDefinitionArns | .[] ') ; do
 #     bn=$(basename $olddef)
 #     td=${bn%:*}
