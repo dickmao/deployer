@@ -1185,6 +1185,13 @@
             "S3BucketName" : {"Ref":"S3Bucket"},
             "IsLogging" : true
           }
-        }
+        },
+        "GenericLogGroup": {
+            "Properties": {
+                "LogGroupName": { "Ref": "EcsCluster" },
+                "RetentionInDays": 1
+            }, 
+            "Type": "AWS::Logs::LogGroup"
+        }, 
     }
 }

@@ -21,7 +21,17 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     # this is a task but libcompose/project needs to his config as a ServiceConfig
     # and I'm not about to modify libcompose
     # also: docker-compose says "Additional properties are not allowed"
-    "mongo-flush": self["base_service"] + devJsonnetTemplate.newMongo(repository, ["sh", "-c", "mongo mongodb://$${MONGO_AUTH_STRING}$${MONGO_HOST}:27017/admin?replicaSet=s0 --eval 'db.fsyncLock()'"] , play_env),
+    "mongo-flush": self["base_service"] + devJsonnetTemplate.newMongo(repository, ["sh", "-c", "mongo mongodb://$${MONGO_AUTH_STRING}$${MONGO_HOST}:27017/admin?replicaSet=s0 --eval 'db.fsyncLock()'"] , play_env) +
+    {  
+      logging: {
+         driver: "awslogs",
+         options: {
+           "awslogs-group": std.extVar("cluster"),
+           "awslogs-region": std.extVar("AWS_DEFAULT_REGION"),
+           "awslogs-stream-prefix": "mongo",
+         }
+      },
+    },
     "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env),
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     scrapyd: self["scrapyd_volume_mounted_service"] + 

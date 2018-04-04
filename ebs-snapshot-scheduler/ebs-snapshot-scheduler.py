@@ -35,7 +35,6 @@ def git_branch():
 
 def backup_instance(instance_obj, region, custom_tag_name, dry=False):
     result = []
-    # jump on ReplicaNode0 and run db.fsyncLock()
     ec2_resource = boto3.resource('ec2', region_name=region)
     for mapping in instance_obj.block_device_mappings:
         if instance_obj.root_device_name == mapping['DeviceName']:

@@ -1777,7 +1777,7 @@
             }
         },
         "NAT2EIP": {
-            "Condition": "PrivateSubnetsCondition",
+            "Condition": "PrivateSubnets&3AZCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -2297,7 +2297,7 @@
             }
         },
         "NAT2EIP": {
-            "Condition": "PrivateSubnetsCondition",
+            "Condition": "PrivateSubnets&3AZCondition",
             "Description": "NAT 2 IP address",
             "Value": {
                 "Ref": "NAT2EIP"
