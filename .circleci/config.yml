@@ -223,8 +223,12 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - restore_cache:
+          keys: ecscli
       - attach_workspace:
           at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
       - run:
           command: |
             set -x
