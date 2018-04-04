@@ -1858,7 +1858,7 @@
             }
         },
         "NATGateway2": {
-            "Condition": "NATGatewayCondition",
+            "Condition": "NATGateway&3AZCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::NatGateway",
             "Properties": {
