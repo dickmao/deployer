@@ -316,7 +316,7 @@
                     "Secondary0NodeSubnet": {
                         "Fn::GetAtt": [
                             "VPCStack",
-                            "Outputs.PrivateSubnet2AID"
+                            "Outputs.PrivateSubnet1AID"
                         ]
                     },
                     "Secondary1NodeSubnet": {
@@ -325,7 +325,7 @@
                             {
                                 "Fn::GetAtt": [
                                     "VPCStack",
-                                    "Outputs.PrivateSubnet2AID"
+                                    "Outputs.PrivateSubnet1AID"
                                 ]
                             },
                             {
