@@ -1192,6 +1192,6 @@
                 "RetentionInDays": 1
             }, 
             "Type": "AWS::Logs::LogGroup"
-        }, 
+        }
     }
 }
