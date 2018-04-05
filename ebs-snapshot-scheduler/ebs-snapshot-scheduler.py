@@ -27,10 +27,12 @@ logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logger = logging.getLogger()
 
-def branch_of(snapshot):
-    branches = [d['Value'] for d in snapshot.tags if d['Key'] == "Branch"]
-    if branches:
-        return branches[0]
+def branch_of(ec2_resource, volume):
+    if volume.snapshot_id:
+        snapshot = ec2_resource.Snapshot(volume.snapshot_id)
+        branches = [d['Value'] for d in snapshot.tags if d['Key'] == "Branch"]
+        if branches:
+            return branches[0]
     return git_branch()
 
 def git_branch():
@@ -54,7 +56,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
-                                { 'Key': 'Branch', 'Value': branch_of(ec2_resource.Snapshot(volume.snapshot_id)) },
+                                { 'Key': 'Branch', 'Value': branch_of(ec2_resource, volume)) },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))
