@@ -18,14 +18,20 @@ import logging
 import os
 
 import boto3
+from git import Repo
 
 import pytz
-from git import Repo
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s', datefmt="%Y-%m-%d %H:%M:%S")
 logging.getLogger('botocore').setLevel(logging.WARNING)
 logging.getLogger('boto3').setLevel(logging.WARNING)
 logger = logging.getLogger()
+
+def branch_of(snapshot):
+    branches = [d['Value'] for d in snapshot.tags if d['Key'] == "Branch"]
+    if branches:
+        return branches[0]
+    return git_branch()
 
 def git_branch():
     branch = os.environ.get('GIT_BRANCH') or os.environ.get('CIRCLE_BRANCH')
@@ -48,7 +54,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
-                                { 'Key': 'Branch', 'Value': git_branch() },
+                                { 'Key': 'Branch', 'Value': branch_of(ec2_resource.Snapshot(volume.snapshot_id)) },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))
