@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 from os.path import join, realpath
+from git import Repo
 
 import jinja2
 import boto3
@@ -30,12 +31,18 @@ if args.var:
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(wdir),
                                trim_blocks=True, lstrip_blocks=True, extensions = ["jinja2.ext.do"])
 
+def git_branch():
+    branch = os.environ.get('GIT_BRANCH') or os.environ.get('CIRCLE_BRANCH')
+    if branch:
+        return branch
+    return Repo("./", search_parent_directories=True).active_branch.name
+
 def aws_snapshot_of(name, device):
     ec2_resource = boto3.resource('ec2', region_name=args.region)
     snaps = sorted(ec2_resource.snapshots.filter(Filters=[
         { 'Name': 'tag:Name','Values': [name] },
         { 'Name': 'tag:Device','Values': [device] },
-        { 'Name': 'tag:Branch','Values': [ os.environ.get('CIRCLE_BRANCH') or "dev" ] },
+        { 'Name': 'tag:Branch','Values': [ git_branch() ] },
     ]), key=lambda snap: snap.start_time)
 
     try:
