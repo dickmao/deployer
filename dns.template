@@ -877,7 +877,20 @@
                     "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
                     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
                 ],
-                "Path": "/"
+                "Path": "/",
+                "Policies": [{
+                  "PolicyName": "InstancePutEvents",
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                      "Effect": "Allow",
+                      "Action": [
+                        "events:PutEvents"
+                      ],
+                      "Resource": "*"
+                    }]
+                  }
+                }]
             }
         },
         "ECSRole": {
@@ -958,6 +971,29 @@
                 }]
               }
             }]
+          }
+        },
+        "DissociatePlayAppEip": {
+          "Type": "AWS::Lambda::Function",
+          "Properties": {
+            "Handler": "index.lambda_handler",
+            "Role": { "Fn::GetAtt" : ["LambdaServiceRole", "Arn"] },
+            "Code": {
+              "ZipFile" : { 
+                  "Fn::Join" : [ "\n", 
+                                 [
+
+                                 ] 
+                               ] }
+            },
+            "Environment": {
+              "Variables": {
+                "ZONEID": { "Ref": "HostedZone" },
+                "CLUSTER": { "Ref": "EcsCluster" }
+              }
+            },
+            "Runtime": "python2.7",
+            "Timeout": "25"
           }
         },
         "RegisterEcsServiceDns": {
@@ -1110,7 +1146,45 @@
             }]
           }
         },
-        "LambdaInvokePermission": {
+        "DissociatePlayAppEipRule": {
+          "Type": "AWS::Events::Rule",
+          "Properties": {
+            "Description": "DissociatePlayAppEipRule",
+            "EventPattern": {
+              "detail-type": [
+                "Task Stopped"
+              ],
+              "source": [
+                  "awslabs.ecs.container"
+              ]
+            },
+            "State": "ENABLED",
+            "Targets": [{
+              "Arn": { "Fn::GetAtt": ["DissociatePlayAppEip", "Arn"] },
+              "Id": "TargetFunctionV1"
+            }]
+          }
+        },
+        "DissociatePlayAppEipLambdaPermission": {
+          "Type": "AWS::Lambda::Permission",
+          "Properties": {
+            "FunctionName": {
+              "Fn::GetAtt": [
+                "DissociatePlayAppEip",
+                "Arn"
+              ]
+            },
+            "Action": "lambda:InvokeFunction",
+            "Principal": "events.amazonaws.com",
+            "SourceArn": {
+              "Fn::GetAtt": [
+                "DissociatePlayAppEipRule",
+                "Arn"
+              ]
+            }
+          }
+        },
+        "RegisterEcsServiceDnsLambdaPermission": {
           "Type": "AWS::Lambda::Permission",
           "Properties": {
             "FunctionName": {
