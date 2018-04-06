@@ -15,7 +15,12 @@ done
 
 source $(dirname $0)/ecs-utils.sh
 
+
 function clean_state {
+  if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
+      aws ecs delete-cluster --cluster $STACK
+  fi
+
   if [ -z ${CIRCLE_BUILD_NUM:-} ]; then
       if [ ! -e $STATEDIR/$VERNUM ]; then
           echo WARN No record of $VERNUM in $STATEDIR
@@ -93,10 +98,9 @@ if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
         sleep 10
     done
 fi
-if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
-    aws ecs delete-cluster --cluster $STACK
-fi
+
 clean_state
+
 for lg in $(aws logs describe-log-groups --log-group-name-prefix "/aws/lambda/$STACK" | jq -r '.logGroups[] | .logGroupName '); do
     aws logs delete-log-group --log-group-name $lg
 done
