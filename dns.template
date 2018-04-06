@@ -1020,7 +1020,7 @@
                                      "        for allocid in [d['AllocationId'] for d in ec2.describe_addresses(Filters=[{'Name':'domain', 'Values':['vpc']}])['Addresses'] if 'AssociationId' not in d]:",
                                      "            ec2.associate_address(AllocationId=allocid, InstanceId=inst)",
                                      "    else:",
-                                     "        print \"This event neither starts not stops.  No action taken.\""
+                                     "        print(\"This event neither starts nor stops.  No action taken.\")"
                                  ]
                                ] }
             },
