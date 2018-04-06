@@ -56,7 +56,7 @@ def backup_instance(instance_obj, region, custom_tag_name, dry=False):
                     { 'ResourceType': 'snapshot',
                       'Tags': [ { 'Key': 'Name', 'Value': name },
                                 { 'Key': 'Device', 'Value': device },
-                                { 'Key': 'Branch', 'Value': branch_of(ec2_resource, volume)) },
+                                { 'Key': 'Branch', 'Value': branch_of(ec2_resource, volume) },
                                 { 'Key': custom_tag_name, 'Value': "auto_delete" },
                       ]}])
             logger.info("Snapped {} {}".format(volume.id, device))
