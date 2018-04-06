@@ -970,6 +970,34 @@
                   "Resource": "*"
                 }]
               }
+            }, {
+              "PolicyName": "CloudWatchEventsLambdaEip",
+              "PolicyDocument": {
+                "Version": "2012-10-17",
+                "Statement": [{
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogGroup",
+                    "logs:CreateLogStream",
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": "arn:aws:logs:*:*:*"
+                }, {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecs:DescribeTasks"
+                  ],
+                  "Resource": "arn:aws:ecs:*:*:task/*"
+                }, {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ec2:DescribeAddresses",
+                    "ec2:AssociateAddress",
+                    "ec2:DisassociateAddress"
+                  ],
+                  "Resource": "*"
+                }]
+              }
             }]
           }
         },
