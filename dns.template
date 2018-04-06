@@ -982,13 +982,50 @@
               "ZipFile" : { 
                   "Fn::Join" : [ "\n", 
                                  [
-
-                                 ] 
+                                     "from __future__ import print_function",
+                                     "import json",
+                                     "import boto3",
+                                     "from botocore.exceptions import ClientError",
+                                     "import os",
+                                     "",
+                                     "def lambda_handler(event, context):",
+                                     "",
+                                     "    # spit out event data",
+                                     "    print(\"Received event: \" + json.dumps(event, indent=2))",
+                                     "",
+                                     "    cluster = os.environ.get(\"CLUSTER\")",
+                                     "    if not cluster:",
+                                     "        print(\"CLUSTER not set. No action taken.\")",
+                                     "        return",
+                                     "",
+                                     "    # check we are working against the appropriate ecs cluster",
+                                     "    if cluster != event['source']:",
+                                     "        print(\"This event does not apply to us. No action taken.\")",
+                                     "        return",
+                                     "",
+                                     "    ecs = boto3.client('ecs')",
+                                     "    if not any([c['name'] == 'play-app' for c in ecs.describe_tasks(cluster=cluster, tasks=[event['detail']['TaskArn']])['tasks'][0]['containers']]):",
+                                     "        print(\"This event has no play-apps. No action taken.\")",
+                                     "        return",
+                                     "",
+                                     "    inst = event['detail']['instance-id']",
+                                     "    ec2 = boto3.client('ec2')",
+                                     "",
+                                     "    ec2.describe_addresses(Filters=[{'Name':'domain', 'Values':['vpc']}])",
+                                     "",
+                                     "    if re.search(r'stop', event['detail-type'], re.IGNORECASE):",
+                                     "        for associd in [d['AssociationId'] for d in ec2.describe_addresses(Filters=[{'Name':'instance-id', 'Values':[inst]}])['Addresses'] if 'AssociationId' in d]:",
+                                     "            ec2.disassociate_address(AssociationId=associd)",
+                                     "    elif re.search(r'start', event['detail-type'], re.IGNORECASE):",
+                                     "        for allocid in [d['AllocationId'] for d in ec2.describe_addresses(Filters=[{'Name':'domain', 'Values':['vpc']}])['Addresses'] if 'AssociationId' not in d]:",
+                                     "            ec2.associate_address(AllocationId=allocid, InstanceId=inst)",
+                                     "    else:",
+                                     "        print \"This event neither starts not stops.  No action taken.\""
+                                 ]
                                ] }
             },
             "Environment": {
               "Variables": {
-                "ZONEID": { "Ref": "HostedZone" },
                 "CLUSTER": { "Ref": "EcsCluster" }
               }
             },
@@ -1146,31 +1183,32 @@
             }]
           }
         },
-        "DissociatePlayAppEipRule": {
+        "AssociatePlayAppEipRule": {
           "Type": "AWS::Events::Rule",
           "Properties": {
-            "Description": "DissociatePlayAppEipRule",
+            "Description": "AssociatePlayAppEipRule",
             "EventPattern": {
               "detail-type": [
-                "Task Stopped"
+                "Task Stopped",
+                "Task Started"
               ],
               "source": [
-                  "awslabs.ecs.container"
+                  { "Ref": "EcsCluster" }
               ]
             },
             "State": "ENABLED",
             "Targets": [{
-              "Arn": { "Fn::GetAtt": ["DissociatePlayAppEip", "Arn"] },
+              "Arn": { "Fn::GetAtt": ["AssociatePlayAppEip", "Arn"] },
               "Id": "TargetFunctionV1"
             }]
           }
         },
-        "DissociatePlayAppEipLambdaPermission": {
+        "AssociatePlayAppEipLambdaPermission": {
           "Type": "AWS::Lambda::Permission",
           "Properties": {
             "FunctionName": {
               "Fn::GetAtt": [
-                "DissociatePlayAppEip",
+                "AssociatePlayAppEip",
                 "Arn"
               ]
             },
@@ -1178,7 +1216,7 @@
             "Principal": "events.amazonaws.com",
             "SourceArn": {
               "Fn::GetAtt": [
-                "DissociatePlayAppEipRule",
+                "AssociatePlayAppEipRule",
                 "Arn"
               ]
             }
