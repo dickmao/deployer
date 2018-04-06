@@ -32,7 +32,7 @@ if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
 fi
 
 if [ -z ${nosnap:-} ]; then
-  ${wd}/ecs-compose-up.sh -s mongo-flush
+  ${wd}/ecs-compose-up.sh -s mongo-flush $VERNUM
   inprog=0
   while [ $inprog -lt 4 ] && ! aws logs get-log-events --log-group-name $STACK --log-stream-name $(aws logs describe-log-streams --log-group-name $STACK --log-stream-name-prefix mongo --max-items 10 | jq -r ' .logStreams | max_by(.lastEventTimestamp) | .logStreamName ') --no-start-from-head | jq -r ' .events | .[].message ' | egrep -q "\"ok.*1" ; do
     echo Waiting for mongo-flush to register an okay
