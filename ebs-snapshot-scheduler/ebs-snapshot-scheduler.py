@@ -184,5 +184,7 @@ if __name__ == "__main__":
 
     purge_history(args.region, custom_tag_name, 1, not args.nodry)
 
-    for instance in boto3.resource('ec2', region_name=args.region).instances.filter(Filters=[{ 'Name': 'tag-key', 'Values': [ custom_tag_name ] }]):
-        backup_instance(instance, args.region, custom_tag_name, not args.nodry)
+    for instance in boto3.resource('ec2', region_name=args.region).instances.filter(Filters=[{ 'Name': 'tag-keye', 'Values': [ custom_tag_name ] }]):
+        stackname = next( (t['Value'] for t in instance.tags if t['Key'] == "aws:cloudformation:stack-name"), None)
+        if stackname != None and stackname.startswith(stack_prefix):
+            backup_instance(instance, args.region, custom_tag_name, not args.nodry)

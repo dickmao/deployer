@@ -31,7 +31,7 @@ function refresh_templates {
     base=$1
     s3cmd mb  s3://${ACCOUNT}.templates --region $REGION 2> /dev/null || [ $? == 13 ]
     render $base
-    s3cmd put /var/tmp/$base s3://${ACCOUNT}.templates/$base --region $REGION 
+    s3cmd put /var/tmp/$(basename $base) s3://${ACCOUNT}.templates/$(basename $base) --region $REGION 
 
     IFS=$'\n'
     for s3key in $(cat /var/tmp/$base | jq -cr '.. | .Code? // empty | .S3Key '); do
@@ -101,7 +101,7 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template $TEMPLATE --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
 set +o pipefail
 
 
