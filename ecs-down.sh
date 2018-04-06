@@ -42,7 +42,7 @@ if [ -z ${nosnap:-} ]; then
   python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
 fi
 
-${wd}/ecs-compose-down.sh
+${wd}/ecs-compose-down.sh $VERNUM
 
 TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
 if [ "$TASKDEF" != "null" ]; then
