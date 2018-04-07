@@ -1014,7 +1014,7 @@
                                      "import json",
                                      "import boto3",
                                      "from botocore.exceptions import ClientError",
-                                     "import os",
+                                     "import os, re",
                                      "",
                                      "def lambda_handler(event, context):",
                                      "",
