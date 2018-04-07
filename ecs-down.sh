@@ -44,6 +44,10 @@ if [ -z ${nosnap:-} ]; then
     let inprog=inprog+1
     sleep 10
   done
+  if [ $inprog -ge 4 ]; then
+    echo Error: See lambdalogs for $STACK
+    exit 2
+  fi
   python ${wd}/ebs-snapshot-scheduler/ebs-snapshot-scheduler.py --nodry $STACK
 fi
 
