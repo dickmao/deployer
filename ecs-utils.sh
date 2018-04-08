@@ -75,7 +75,12 @@ EOF
     GIT_BRANCH="dev"
   fi
   local EIP_ADDRESS
-  EIP_ADDRESS=$(aws ec2 describe-addresses --filters Name=tag:cluster,Values=$STACK | jq -r '.Addresses | .[]')
+  EIP_ADDRESS=$(aws cloudformation list-exports | jq -r '.Exports[] | select((.Name | startswith("'$STACK'")) and (.Name | endswith("PlayAppEIP"))) | .Value')
+  if [ -z $EIP_ADDRESS ]; then
+    echo Error Could not find PlayAppEIP for $STACK
+    false
+    exit 1
+  fi
   python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD} --var GIT_BRANCH=${CIRCLE_BRANCH:-${GIT_BRANCH}} --var EIP_ADDRESS=${EIP_ADDRESS}
 }
 
