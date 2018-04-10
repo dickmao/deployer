@@ -260,6 +260,9 @@ workflows:
           requires:
             - build-deployer-image
             - build-ecscli
+      - push-redis-populate:
+          requires:
+            - build-deployer-image
       - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
@@ -306,9 +309,13 @@ workflows:
           requires:
             - build-deployer-image
             - build-ecscli
+      - push-redis-populate:
+          requires:
+            - build-deployer-image
       - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
+            - push-redis-populate
       - login-node:
           requires:
             - ecs-compose-up-except-dedupe
