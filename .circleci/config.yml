@@ -48,6 +48,8 @@ jobs:
           aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
     steps:
       - checkout
+      - setup_remote_docker:   # (2)
+          docker_layer_caching: false # (3)
       - run:
           command: |
             python ./redis-populate/docker-build.py
