@@ -40,6 +40,18 @@ jobs:
           paths: 
             - /go/src/github.com/aws/amazon-ecs-cli
 
+  push-redis-populate:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - run:
+          command: |
+            python ./redis-populate/docker-build.py
+
   ecs-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -251,6 +263,7 @@ workflows:
       - ecs-compose-up-except-dedupe:
           requires:
             - ecs-up
+            - push-redis-populate
       - login-node:
           requires:
             - ecs-compose-up-except-dedupe
