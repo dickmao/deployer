@@ -7,15 +7,18 @@ from itertools import imap
 from git import Repo
 
 wdir = os.path.dirname(realpath(__file__))
+branch = Repo(wdir, search_parent_directories=True).active_branch.name
 try:
-    Repo(join(wdir, '.play-app')).remote().pull()
+    playRepo = Repo(join(wdir, '.play-app'))
+    playRepo.git.checkout(branch)
+    playRepo.remote().pull()
 except:
     try:
         shutil.rmtree(join(wdir, '.play-app'))
     except OSError as e:
         if e.errno != errno.ENOENT:
             raise
-    Repo.clone_from("git@github.com:dickmao/play-app.git", to_path=join(wdir, '.play-app'), branch=Repo(wdir, search_parent_directories=True).active_branch.name, **{"depth": 1, "single-branch": True})
+    Repo.clone_from("git@github.com:dickmao/play-app.git", to_path=join(wdir, '.play-app'), branch=branch, **{"depth": 1})
 
 table = ['geonameid','name','asciiname','alternatenames','latitude','longitude','featureclass','featurecode','countrycode','cc2','admin1code','admin2code','admin3code','admin4code','population','elevation','dem','timezone','modificationdate']
 
@@ -61,6 +64,9 @@ COPY ./redin.tmp ./redin.tmp
 COPY ./purge-old.sh ./purge-old.sh
     """)
 
-subprocess.call([join(wdir, '../ecr-build-and-push.sh'), join(wdir, 'Dockerfile.tmp'), 'redis-populate:latest'], cwd=wdir)
+ret = subprocess.call([join(wdir, '../ecr-build-and-push.sh'), join(wdir, 'Dockerfile.tmp'), 'redis-populate:latest'], cwd=wdir)
 os.remove(join(wdir, "./redin.tmp"))
 os.remove(join(wdir, "./Dockerfile.tmp"))
+if ret != 0:
+    print "Failed ecr-build-and-push.sh"
+    sys.exit(-1)
