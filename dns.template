@@ -716,7 +716,6 @@
                           "/home/ec2-user/.bash_aliases" : {
                              "content" : { "Fn::Join" : [ "", [
                                "function docke {\n",
-                               "  set -x\n",
                                "  svc=\"$1\"\n",
                                "  shift\n",
                                "  C=\"$@\"\n",
