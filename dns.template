@@ -114,6 +114,11 @@
           "Description": "ECS EC2 AMI id",
           "Default": ""
         },
+        "MyHostedZone": {
+          "Type": "String",
+          "Description": "Preexisting Hosted Zone to populate",
+          "Default": ""
+        },
         "EcsInstanceType": {
           "Type": "String",
           "Description": "ECS EC2 instance type",
@@ -206,6 +211,18 @@
                     "Ref": "ClusterReplicaSetCount"
                 },
                 "3"
+            ]
+        },
+        "UseMyHostedZone": {
+            "Fn::Not": [
+               {
+                  "Fn::Equals": [
+                      {
+                          "Ref": "MyHostedZone"
+                      },
+                      ""
+                  ]
+               }
             ]
         }
     },
@@ -363,8 +380,14 @@
         "PrimaryReplicaNodeDns" : {
             "Type" : "AWS::Route53::RecordSet",
             "Properties" : {
-                "Name": { "Fn::Join": [ ".", [ "db0", { "Ref": "EcsCluster" }, "internal" ] ] },
-                "HostedZoneId" : { "Ref": "HostedZone" },
+                "Name" : { "Fn::Join": [ ".", [ "db0", { "Ref": "EcsCluster" }, "internal" ] ] },
+                "HostedZoneId" : {
+                    "Fn::If": [
+                       "UseMyHostedZone",
+                       { "Ref": "MyHostedZone" },
+                       { "Ref": "HostedZone" }
+                   ]
+                },
                 "Type" : "A",
                 "TTL" : "900",
                 "ResourceRecords" : [{
@@ -380,7 +403,13 @@
             "Condition": "CreateThreeReplicaSet",
             "Properties" : {
                 "Name": { "Fn::Join": [ ".", [ "db1", { "Ref": "EcsCluster" }, "internal" ] ] },
-                "HostedZoneId" : { "Ref": "HostedZone" },
+                "HostedZoneId" : {
+                    "Fn::If": [
+                       "UseMyHostedZone",
+                       { "Ref": "MyHostedZone" },
+                       { "Ref": "HostedZone" }
+                   ]
+                },
                 "Type" : "A",
                 "TTL" : "900",
                 "ResourceRecords" : [{
@@ -396,7 +425,13 @@
             "Condition": "CreateThreeReplicaSet",
             "Properties" : {
                 "Name": { "Fn::Join": [ ".", [ "db2", { "Ref": "EcsCluster" }, "internal" ] ] },
-                "HostedZoneId" : { "Ref": "HostedZone" },
+                "HostedZoneId" : {
+                    "Fn::If": [
+                       "UseMyHostedZone",
+                       { "Ref": "MyHostedZone" },
+                       { "Ref": "HostedZone" }
+                   ]
+                },
                 "Type" : "A",
                 "TTL" : "900",
                 "ResourceRecords" : [{
@@ -494,6 +529,7 @@
           }
         },
         "HostedZone": {
+            "Condition": { "Fn::Not": [{ "Condition": "UseMyHostedZone" }] },
             "Type": "AWS::Route53::HostedZone",
             "Properties": {
                 "HostedZoneConfig": { "Comment": "Hosted Zone for ECS Service Discovery" },
@@ -922,7 +958,6 @@
         },
         "LambdaServiceRole": {
           "Type": "AWS::IAM::Role",
-          "DependsOn": "HostedZone",
           "Properties": {
             "AssumeRolePolicyDocument": {
               "Version": "2012-10-17",
@@ -958,7 +993,13 @@
                   ],
                   "Resource": {
                     "Fn::Join": ["", ["arn:aws:route53:::hostedzone/", {
-                      "Ref": "HostedZone"
+                        "HostedZoneId" : {
+                            "Fn::If": [
+                               "UseMyHostedZone",
+                               { "Ref": "MyHostedZone" },
+                               { "Ref": "HostedZone" }
+                           ]
+                        }
                     }]]
                   }
                 }, {
@@ -1177,7 +1218,13 @@
             },
             "Environment": {
               "Variables": {
-                "ZONEID": { "Ref": "HostedZone" },
+                "ZONEID" : {
+                    "Fn::If": [
+                       "UseMyHostedZone",
+                       { "Ref": "MyHostedZone" },
+                       { "Ref": "HostedZone" }
+                   ]
+                },
                 "CLUSTER": { "Ref": "EcsCluster" }
               }
             },
