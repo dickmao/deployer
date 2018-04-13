@@ -1087,13 +1087,11 @@
                   ],
                   "Resource": {
                     "Fn::Join": ["", ["arn:aws:route53:::hostedzone/", {
-                        "HostedZoneId" : {
-                            "Fn::If": [
-                               "UseMyHostedZone",
-                               { "Ref": "MyHostedZone" },
-                               { "Ref": "HostedZone" }
-                           ]
-                        }
+                        "Fn::If": [
+                           "UseMyHostedZone",
+                           { "Ref": "MyHostedZone" },
+                           { "Ref": "HostedZone" }
+                        ]
                     }]]
                   }
                 }, {
