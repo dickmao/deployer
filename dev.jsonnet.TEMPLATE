@@ -99,7 +99,6 @@ local composeUp(repository) = {
     },
     "corenlp": self["base_service"] + {
       image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest",
-      mem_reservation: "512m",
       ports: [ "9005:9005" ],
       environment: [ "SERVICE_9005_NAME=_corenlp._tcp" ],
     },
