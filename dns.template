@@ -560,7 +560,22 @@
                     }
                 ]
             }
-        }, 
+        },
+        "AliasRecordSetGroup": {
+            "Type" : "AWS::Route53::RecordSetGroup",
+            "Properties" : {
+              "HostedZoneName" : "keeyosk.com.",
+              "Comment" : "Zone apex alias targeted to LoadBalancer.",
+              "RecordSets" : [ {
+                  "Name" : "keeyosk.com.",
+                  "Type" : "A",
+                  "AliasTarget" : {
+                      "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneNameID"] },
+                      "DNSName" : { "Fn::GetAtt" : ["LoadBalancer","DNSName"] }
+                  }
+              } ]
+            }            
+        },
         "PlayTargetGroup": {
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
             "Properties": {

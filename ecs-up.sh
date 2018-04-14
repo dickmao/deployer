@@ -62,7 +62,8 @@ containsElement () {
 }
 
 wd=$(dirname $0)
-source ${wd}/ecs-utils.sh 0
+VERNUM="${1:-0}"
+source ${wd}/ecs-utils.sh $VERNUM
 ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
 REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
@@ -71,7 +72,7 @@ if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
       echo Not recreating $(get-cluster)
       exit 0
   fi
-else
+elif [ $VERNUM == "0" ]; then
   read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
   for s in ${states[@]} ; do
       VERNUM=$(echo $s | sed 's/^0*//')
@@ -101,7 +102,12 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+if [ $VERNUM != "0" ]; then
+  echo $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+  exit 0
+else
+  $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+fi
 set +o pipefail
 
 
