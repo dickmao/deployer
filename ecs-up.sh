@@ -141,7 +141,7 @@ if [ -z "$tgarns" ]; then
     exit -1
 fi
 IFS=$'\n'
-for tgarn in "$tgarns"; do
+for tgarn in $tgarns; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
     aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
 done
