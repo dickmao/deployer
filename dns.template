@@ -570,8 +570,8 @@
                   "Name" : "keeyosk.com.",
                   "Type" : "A",
                   "AliasTarget" : {
-                      "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneNameID"] },
-                      "DNSName" : { "Fn::GetAtt" : ["LoadBalancer","DNSName"] }
+                      "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
+                      "DNSName" : { "Fn::GetAtt" : ["LoadBalancer", "DNSName"] }
                   }
               } ]
             }            

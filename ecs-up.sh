@@ -63,7 +63,12 @@ containsElement () {
 
 wd=$(dirname $0)
 VERNUM="${1:-0}"
+command="template"
+if [ $VERNUM != "0" ]; then
+    command="template-update"
+fi
 source ${wd}/ecs-utils.sh $VERNUM
+
 ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
 REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
@@ -102,12 +107,7 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-if [ $VERNUM != "0" ]; then
-  echo $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
-  exit 0
-else
-  $ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
-fi
+$ECSCLIBIN $command --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
 set +o pipefail
 
 
@@ -136,14 +136,16 @@ set +o pipefail
 # aws events put-targets --rule registerEcsServiceDnsRule --targets "Id"="Target1","Arn"=$FUNCTIONARN
 
 tgarns=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups | map(select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn) | .[]')
-if [ -z $tgarns ]; then
+if [ -z "$tgarns" ]; then
     echo ERROR Problem finding targetarns
     exit -1
 fi
-for tgarn in $tgarns; do
+IFS=$'\n'
+for tgarn in "$tgarns"; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
     aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
 done
+unset IFS
 
 # save some dough
 nats=""
