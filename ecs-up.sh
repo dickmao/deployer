@@ -143,7 +143,9 @@ fi
 IFS=$'\n'
 for tgarn in $tgarns; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
-    aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
+    if [ ! -z "$toarr" ]; then
+      aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
+    fi
 done
 unset IFS
 
