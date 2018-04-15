@@ -111,7 +111,6 @@ for k in "${!hofa[@]}" ; do
     # currently only handle single port (other possibilities include ranges 9001-9005)
     elb=""
     PORTS=$(cat $STATEDIR/docker-compose.$STACK.json | jq -r ".services | .$k | select(has(\"ports\")) | .ports[]")
-    PORTS=${PORTS%%:*}
     if [[ $PORTS =~ ^[[:digit:]]+$ ]]; then
         # query target group arn for listener on that port
         targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Port=='$PORTS') | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
