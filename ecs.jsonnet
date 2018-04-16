@@ -33,7 +33,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       },
     },
     "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
-      ports: [ "80" ],
+      ports: [ "9000" ],
     },
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     scrapyd: self["scrapyd_volume_mounted_service"] + 

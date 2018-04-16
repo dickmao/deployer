@@ -536,7 +536,7 @@
             },{
                 "IpProtocol": "tcp",
                 "FromPort": 80,
-                "ToPort": 80,
+                "ToPort": 9000,
                 "SourceSecurityGroupId": {
                   "Ref": "EcsInstanceSecurityGroup"
                 }
@@ -589,7 +589,7 @@
                     ]
                 }, 
                 "Protocol": "HTTP",
-                "Port": 80,
+                "Port": 9000,
                 "TargetGroupAttributes": [{
                     "Key": "deregistration_delay.timeout_seconds",
                     "Value": "30"
