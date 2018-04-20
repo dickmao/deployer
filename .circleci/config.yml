@@ -73,6 +73,25 @@ jobs:
           paths:
             - "*"
 
+  ecs-up-internet:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - run:
+          command: |
+            set -x
+            ./ecs-up.sh --internet
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+
   ecs-compose-up-except-dedupe:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -307,7 +326,7 @@ workflows:
     jobs:
       - build-deployer-image
       - build-ecscli
-      - ecs-up:
+      - ecs-up-internet:
           requires:
             - build-deployer-image
             - build-ecscli
@@ -316,7 +335,7 @@ workflows:
             - build-deployer-image
       - ecs-compose-up-except-dedupe:
           requires:
-            - ecs-up
+            - ecs-up-internet
             - push-redis-populate
       - login-node:
           requires:

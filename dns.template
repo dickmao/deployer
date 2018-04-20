@@ -580,6 +580,7 @@
         },
         "AliasRecordSetGroup": {
             "Type" : "AWS::Route53::RecordSetGroup",
+            "Condition": "InternetFacing",
             "Properties" : {
               "HostedZoneName" : "keeyosk.com.",
               "Comment" : "Zone apex alias targeted to LoadBalancer.",
