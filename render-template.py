@@ -16,7 +16,7 @@ from six import next
 wdir = os.path.dirname(realpath(__file__))
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--var', nargs='*', action='append')
+parser.add_argument('--var', action='append')
 parser.add_argument('--outdir', default="/var/tmp")
 parser.add_argument('--region', default="us-east-2")
 parser.add_argument('template', nargs='+')

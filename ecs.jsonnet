@@ -32,12 +32,14 @@ devJsonnetTemplate.composeUp(repository=repository) + {
          }
       },
     },
-    "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env),
+    "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
+      ports: [ "9000" ],
+    },
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
       devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], []) + {
-        ports: [ "6800" ],
-      },
+      ports: [ "6800" ],
+    },
     scrapoxy: self["base_service"] + {
       image: repository + "scrapoxy:latest",
       mem_limit: "300m",

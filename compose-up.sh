@@ -109,11 +109,14 @@ for k in "${!hofa[@]}" ; do
     options=$(echo "${hofa[$k]}" | sed -e 's/|/ --service-configs /g')
 
     # currently only handle single port (other possibilities include ranges 9001-9005)
+    # this is going to fail once two service under the same task prefix have associated ports
     elb=""
-    PORTS=$(cat $STATEDIR/docker-compose.$STACK.json | jq -r ".services | .$k | select(has(\"ports\")) | .ports[]")
-    if [[ $PORTS =~ ^[[:digit:]]+$ ]]; then
+    SERVICE_PORT=$(cat $STATEDIR/docker-compose.$STACK.json | jq -r ".services | to_entries | map(select((.key| match(\"^$k\")) and (.value|has(\"ports\"))))[] | \"\(.key) \(.value | .ports[])\" ")
+    if [ ! -z "${SERVICE_PORT}" ] && [[ ${SERVICE_PORT#* } =~ ^[[:digit:]]+$ ]]; then
+        SERVICE=${SERVICE_PORT% *}
+        PORT=${SERVICE_PORT#* }
         # query target group arn for listener on that port
-        targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Port=='$PORTS') | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
+        targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Port=='$PORT') | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
         if [ -z $targetarn ]; then
           echo ERROR Problem finding targetarn
           exit -1
@@ -124,7 +127,7 @@ for k in "${!hofa[@]}" ; do
         # targetarn=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-0001|jq -r '.StackResources[] | select(.ResourceType=="AWS::ElasticLoadBalancingV2::TargetGroup") | .PhysicalResourceId')
         # service specifies desired count of tasks which are composed of container-names
         ECSROLE=$(aws iam list-roles | jq -r ".Roles[] | select(.RoleName | contains(\"${STACK}-ECSRole\")) | .RoleName")
-        elb=" --target-group-arn $targetarn --container-name $k --container-port $PORTS --role $ECSROLE"
+        elb=" --target-group-arn $targetarn --container-name $SERVICE --container-port $PORT --role $ECSROLE"
     fi
 
     if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 

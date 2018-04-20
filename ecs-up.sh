@@ -1,5 +1,18 @@
 #!/bin/bash -euxE
 
+while [[ $# -gt 0 ]] ; do
+  key="$1"
+  case "$key" in
+      --internet)
+      internet=" --var elb_scheme=internet-facing"
+      shift
+      ;;
+      *)
+      break
+      ;;    
+  esac
+done
+
 function finish {
   if [ $? != 0 ]; then
     if [ ! -z "$(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[]')" ] ; then
@@ -16,7 +29,7 @@ trap finish EXIT
 trap sigH INT TERM ERR QUIT
 
 function render {
-    python ${wd}/render-template.py --region $REGION --outdir /var/tmp "$@"
+    eval python ${wd}/render-template.py --region $REGION --outdir /var/tmp${internet:-} "$@"
 }
 
 function s3_publish {
@@ -62,7 +75,13 @@ containsElement () {
 }
 
 wd=$(dirname $0)
-source ${wd}/ecs-utils.sh 0
+VERNUM="${1:-0}"
+command="template"
+if [ $VERNUM != "0" ]; then
+    command="template-update"
+fi
+source ${wd}/ecs-utils.sh $VERNUM
+
 ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
 REGION=$(aws configure get region)
 if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
@@ -71,7 +90,7 @@ if [ ! -z ${CIRCLE_BUILD_NUM:-} ]; then
       echo Not recreating $(get-cluster)
       exit 0
   fi
-else
+elif [ $VERNUM == "0" ]; then
   read -r -a states <<< $(cd $STATEDIR ; echo 0000 [0-9][0-9][0-9][0-9] | gawk '/\y[0-9]{4}\y/ { print $1 }' RS=" " | sort -n)
   for s in ${states[@]} ; do
       VERNUM=$(echo $s | sed 's/^0*//')
@@ -101,7 +120,7 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-$ECSCLIBIN template --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+$ECSCLIBIN $command --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
 set +o pipefail
 
 
@@ -130,14 +149,18 @@ set +o pipefail
 # aws events put-targets --rule registerEcsServiceDnsRule --targets "Id"="Target1","Arn"=$FUNCTIONARN
 
 tgarns=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups | map(select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn) | .[]')
-if [ -z $tgarns ]; then
+if [ -z "$tgarns" ]; then
     echo ERROR Problem finding targetarns
     exit -1
 fi
+IFS=$'\n'
 for tgarn in $tgarns; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')
-    aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
+    if [ ! -z "$toarr" ]; then
+      aws elbv2 deregister-targets --target-group-arn $tgarn --targets $toarr
+    fi
 done
+unset IFS
 
 # save some dough
 nats=""
