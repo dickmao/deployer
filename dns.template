@@ -197,6 +197,12 @@
     },
 
     "Conditions": {
+        "InternetFacing": {
+            "Fn::Equals": [
+                "{{ elb_scheme | default('internal') }}",
+                "internet-facing"
+            ]
+        },
         "RepeatSubnet": {
             "Fn::Equals": [
                 {
@@ -453,7 +459,7 @@
         "LoadBalancer": {
           "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
           "Properties": {
-            "Scheme": "internal",
+            "Scheme": "{{ elb_scheme | default('internal') }}",
             "Subnets": [{
               "Fn::GetAtt": [
                   "VPCStack",
@@ -537,11 +543,22 @@
                 "IpProtocol": "tcp",
                 "FromPort": 80,
                 "ToPort": 9000,
-                "SourceSecurityGroupId": {
-                  "Ref": "EcsInstanceSecurityGroup"
+                "CidrIp" : {
+                    "Fn::If": [
+                        "InternetFacing",
+                        {"Ref": "RemoteAccessCIDR"},
+                        {"Ref": "AWS::NoValue"}
+                    ]
+                },
+                "SourceSecurityGroupId" : {
+                    "Fn::If": [
+                        "InternetFacing",
+                        {"Ref": "AWS::NoValue"},
+                        {"Ref": "EcsInstanceSecurityGroup"}
+                    ]
                 }
-            }]
-          }
+              }]
+            }
         },
         "PlayLoadBalancerListener": {
             "Type": "AWS::ElasticLoadBalancingV2::Listener", 

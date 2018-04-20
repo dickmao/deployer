@@ -1,5 +1,18 @@
 #!/bin/bash -euxE
 
+while [[ $# -gt 0 ]] ; do
+  key="$1"
+  case "$key" in
+      --internet)
+      internet=" --var elb_scheme=internet-facing"
+      shift
+      ;;
+      *)
+      break
+      ;;    
+  esac
+done
+
 function finish {
   if [ $? != 0 ]; then
     if [ ! -z "$(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[]')" ] ; then
@@ -16,7 +29,7 @@ trap finish EXIT
 trap sigH INT TERM ERR QUIT
 
 function render {
-    python ${wd}/render-template.py --region $REGION --outdir /var/tmp "$@"
+    eval python ${wd}/render-template.py --region $REGION --outdir /var/tmp${internet:-} "$@"
 }
 
 function s3_publish {
