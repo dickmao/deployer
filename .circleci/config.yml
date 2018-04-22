@@ -331,9 +331,6 @@ workflows:
       - ecs-compose-up-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
-      - cron-spiders:
-          requires:
-            - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
             - ecs-compose-up-dedupe
