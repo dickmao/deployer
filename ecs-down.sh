@@ -7,14 +7,17 @@ while [[ $# -gt 0 ]] ; do
       shift
       nosnap=1
       ;;
+      --all)
+      shift
+      all=1
+      ;;
       *)
       break
       ;;    
   esac
 done
 
-source $(dirname $0)/ecs-utils.sh
-
+source $(dirname $0)/ecs-utils.sh "${all:-}"
 
 function clean_state {
   if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
@@ -30,13 +33,20 @@ function clean_state {
   fi
 }
 
+if [ ! -z "${all:-}" ]; then
+  if ! down_all; then
+    exit 2
+  fi
+  exit 0
+fi
+
 if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
   echo Stack $STACK not found
   clean_state
   exit 0
 fi
 
-if [ -z ${nosnap:-} ]; then
+if [ -z "${nosnap:-}" ]; then
   if ${wd}/ecs-compose-up.sh -s mongo-flush $VERNUM ; then
     inprog=0
     while [ $inprog -lt 4 ] && ! aws logs get-log-events --log-group-name $STACK --log-stream-name $(aws logs describe-log-streams --log-group-name $STACK --log-stream-name-prefix mongo --max-items 10 | jq -r ' .logStreams | max_by(.lastEventTimestamp) | .logStreamName ') --no-start-from-head | jq -r ' .events | .[].message ' | egrep -q "server.*down|are down" ; do

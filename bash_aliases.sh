@@ -209,12 +209,14 @@ function dockrm {
 }
 
 function get-cluster {
-  if [ ! -z ${ECS_CLUSTER:-} ]; then
-    echo $ECS_CLUSTER
+  if [ ! -z "${ECS_CLUSTER:-}" ]; then
+    echo "$ECS_CLUSTER"
   else
     local vernum
     vernum=$(get-vernum ${1:-})
-    echo ecs-$(whoami)-${vernum}
+    local whoiam
+    whoiam="${ECS_WHOAMI:-$(whoami)}"
+    echo ecs-${whoiam}-${vernum}
   fi
 }
 
