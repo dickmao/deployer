@@ -4,7 +4,7 @@ if ! aws configure get region; then
   aws configure set region ${AWS_REGION}
 fi
 
-function set_circleci_vernum {
+function set_circle_token {
   if [ -f ${wd}/circleci.api ]; then
     CIRCLE_TOKEN=$(cat ${wd}/circleci.api)
   fi
@@ -16,8 +16,28 @@ function set_circleci_vernum {
     echo Need CIRCLE_BUILD_NUM environment variable
     exit -1
   fi
-  VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id[-4:]" )
+}
 
+function down_all {
+  set_circle_token
+  VERNUMS=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer?limit=100 | jq -r ".[] | select(.branch==\"${CIRCLE_BRANCH}\") | \"\(.workflows | .workflow_id[-4:])\"" | sort -u)
+  local result=0
+  IFS=$'\n'
+  for vernum in $VERNUMS; do
+    if aws ecs describe-clusters --cluster $(get-cluster $vernum) | jq -r '.clusters[] | select(.status=="ACTIVE") | .clusterName' | grep $vernum ; then
+      if ! ${wd}/ecs-down.sh $vernum ; then
+        echo Error downing $vernum
+        result=1
+      fi
+    fi
+  done
+  unset IFS
+  return $result
+}
+
+function set_circleci_vernum {
+  set_circle_token
+  VERNUM=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.build_num==${CIRCLE_BUILD_NUM}) | .workflows | .workflow_id[-4:]" )
   IFS=$'\n'
   REUSE=$(curl -sku ${CIRCLE_TOKEN}: https://circleci.com/api/v1.1/project/github/dickmao/deployer | jq -r ".[] | select(.branch==\"${CIRCLE_BRANCH}\") | \"\(.outcome) \(.workflows | .workflow_id[-4:])\"" | uniq )
   for reuse in $REUSE; do

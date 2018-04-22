@@ -225,6 +225,20 @@ jobs:
             source ./bash_aliases.sh
             docke-ecs play-email bin/success-function
 
+  cron-spiders:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ newyork\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ listingsproject\\\\n" \> /etc/cron.hourly/b \; chmod ugo+x /etc/cron.hourly/b'
+
   ecs-compose-down:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -266,6 +280,29 @@ jobs:
           command: |
             set -x
             ./ecs-down.sh
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+
+  ecs-down-all:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
+      - run:
+          command: |
+            set -x
+            ./ecs-down.sh --all
       - persist_to_workspace:
           root: ecs-state
           paths:
@@ -316,7 +353,7 @@ workflows:
             - ecs-compose-down
 
   # sepp2k no way for array to contain anchor steps and additional steps
-  scheduled-workflow:
+  scheduled-up:
     triggers:
       - schedule:
           cron: "0 15 * * *"
@@ -356,9 +393,24 @@ workflows:
       - success-function:
           requires:
             - wait-for-digest
+      - cron-spiders:
+          requires:
+            - wait-for-digest
+
+  scheduled-down:
+    triggers:
+      - schedule:
+          cron: "0 21 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build-deployer-image
+      - build-ecscli
       - ecs-compose-down:
           requires:
-            - success-function
-      - ecs-down:
+            - build-deployer-image
+            - build-ecscli
+      - ecs-down-all:
           requires:
             - ecs-compose-down
