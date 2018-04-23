@@ -407,10 +407,7 @@ workflows:
     jobs:
       - build-deployer-image
       - build-ecscli
-      - ecs-compose-down:
+      - ecs-down-all:
           requires:
             - build-deployer-image
             - build-ecscli
-      - ecs-down-all:
-          requires:
-            - ecs-compose-down
