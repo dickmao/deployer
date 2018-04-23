@@ -17,7 +17,7 @@ while [[ $# -gt 0 ]] ; do
   esac
 done
 
-source $(dirname $0)/ecs-utils.sh "${all:-}"
+source $(dirname $0)/ecs-utils.sh ${all:-}
 
 function clean_state {
   if [[ "ACTIVE" == $(aws ecs describe-clusters --cluster $STACK | jq -r ' .clusters[0] | .status') ]] ; then
