@@ -62,10 +62,6 @@ if [ ! -d $STATEDIR ]; then
   mkdir $STATEDIR
 fi
 VERNUM=${1:-$(get-vernum)}
-if [ -z $VERNUM ]; then
-  echo No outstanding clusters found
-  exit -1
-fi
 STACK=$(get-cluster $VERNUM)
 
 function render_string {
