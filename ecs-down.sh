@@ -99,6 +99,12 @@ if [ ! -z ${hosted_zone_id} ]; then
         --output text --query 'ChangeInfo.Id'
     fi
   done
+  inprog=0
+  while [ $inprog -lt 50 ] && aws route53 list-resource-record-sets --hosted-zone-id $hosted_zone_id | jq -c '.ResourceRecordSets[] | .Type' | egrep -vw "NS|SOA" ; do
+      echo Waiting for hosted zone to clear...
+      let inprog=inprog+1
+      sleep 10
+  done
   aws route53 delete-hosted-zone \
     --id $hosted_zone_id \
     --output text --query 'ChangeInfo.Id'
