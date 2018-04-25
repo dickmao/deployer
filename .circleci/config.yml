@@ -238,7 +238,6 @@ jobs:
             source ./bash_aliases.sh
             docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ newyork\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
             docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ listingsproject\\\\n" \> /etc/cron.hourly/b \; chmod ugo+x /etc/cron.hourly/b'
-            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ boroughs\\\\n" \> /etc/cron.hourly/c \; chmod ugo+x /etc/cron.hourly/c'
 
   ecs-compose-down:
     docker:
