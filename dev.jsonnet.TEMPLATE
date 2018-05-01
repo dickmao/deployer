@@ -84,7 +84,7 @@ local composeUp(repository) = {
     "scrapyd-deploy": self["base_service"] + {
       image: repository + "scrapyd-deploy:latest",
       mem_limit: "100m",
-      command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; scrapyd-deploy aws'",
+      command: "sh -c 'while ! curl -s http://scrapyd:6800/daemonstatus.json | grep -qw ok ; do echo Waiting daemonstatus=ok && sleep 10 ; done ; while scrapyd-deploy aws 2>&1 | grep -i temporarily ; do sleep 10 ; done '",
     },
     "scrapyd-crawl": self["scrapyd_volume_mounted_service"] + {
       image: repository + "scrapyd-deploy:latest",
