@@ -90,15 +90,28 @@ if [ ! -z ${hosted_zone_id} ]; then
   aws route53 list-resource-record-sets --hosted-zone-id $hosted_zone_id | jq -c '.ResourceRecordSets[]' | \
   while read -r resourcerecordset; do
     read -r name type <<<$(echo $(jq -r '.Name,.Type' <<<"$resourcerecordset"))
-    if [ $type == "SRV" -o $type == "A" ]; then
+    if [ $type != "NS" -a $type != "SOA" ]; then
       aws route53 change-resource-record-sets \
         --hosted-zone-id $hosted_zone_id \
         --change-batch '{"Changes":[{"Action":"DELETE","ResourceRecordSet":
             '"$resourcerecordset"'
           }]}' \
-        --output text --query 'ChangeInfo.Id'
+        --output text --query 'ChangeInfo.Id' || true
     fi
   done
+  aws route53 delete-hosted-zone \
+    --id $hosted_zone_id \
+    --output text --query 'ChangeInfo.Id'
+fi
+
+if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
+    aws cloudformation delete-stack --stack-name $STACK
+    inprog=0
+    while [ $inprog -lt 50 ] && [ "xDELETE_IN_PROGRESS" == "x$(aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null | jq -r ' .Stacks[0] | .StackStatus ')" ]; do
+        echo DELETE_IN_PROGRESS...
+        let inprog=inprog+1
+        sleep 10
+    done
 fi
 
 if aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
