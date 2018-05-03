@@ -46,6 +46,13 @@ local newPlayEmail(repository, env) = {
   environment: [ "REDIS_HOST=redis" ] + aws_env + env,
 };
 
+local newCoreNlp(repository, env) = {
+  image: repository + "corenlp:3.8.0",
+  mem_reservation: "2g",
+  ports: [ "9005:9005" ],
+  environment: [ "SERVICE_9005_NAME=_corenlp._tcp" ] + env,
+};
+
 local composeUp(repository) = {
   aws_env:: aws_env,
   version: "2",
@@ -75,6 +82,7 @@ local composeUp(repository) = {
     },
     "play-app": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
     "play-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
+    "corenlp": self["base_service"] + newCoreNlp(repository, []),
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
       mem_limit: "100m",
@@ -96,12 +104,6 @@ local composeUp(repository) = {
       mem_reservation: "512m",
       command: "sh -c './wait-for-it.sh -t 500 corenlp:9005 -- ./wait-for-it.sh -t 500 redis:6379 -- ./dedupe-on-demand.sh '",
       environment: aws_env
-    },
-    "corenlp": self["base_service"] + {
-      image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp@sha256:64ba4830b10b75f4da7abd80f9e05512af3196e2d89ac26383a04495992856f0",
-      mem_reservation: "2g",
-      ports: [ "9005:9005" ],
-      environment: [ "SERVICE_9005_NAME=_corenlp._tcp" ],
     },
   },
   volumes: { "scrapyd": null,

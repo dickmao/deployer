@@ -36,6 +36,9 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       ports: [ "9000" ],
     },
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
+    "corenlp": self["base_service"] + devJsonnetTemplate.newCoreNlp(repository, []) + {
+      image: repository + "corenlp@sha256:64ba4830b10b75f4da7abd80f9e05512af3196e2d89ac26383a04495992856f0",
+    },
     scrapyd: self["scrapyd_volume_mounted_service"] + 
       devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], []) + {
       ports: [ "6800" ],
