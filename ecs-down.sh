@@ -40,7 +40,7 @@ if [ ! -z "${all:-}" ]; then
   exit 0
 fi
 
-if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null ; then
+if ! aws cloudformation describe-stacks --stack-name $STACK 2>/dev/null >/dev/null; then
   echo Stack $STACK not found
   clean_state
   exit 0

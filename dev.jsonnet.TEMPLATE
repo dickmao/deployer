@@ -124,4 +124,5 @@ local composeUp(repository) = {
   composeUp:: composeUp,
   newPlayEmail:: newPlayEmail,
   newPlayApp:: newPlayApp,
+  newCoreNlp:: newCoreNlp,
 }
