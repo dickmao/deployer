@@ -26,5 +26,5 @@ if dels:
     red.zrem("item.index.bedrooms", *dels)
     red.zrem("item.index.score", *dels)
     red.zrem("item.geohash.coords", *dels)
-for i in range(30):
-    red.zrem("item.index.posted.{}".format(i), *dels)
+    for i in range(30):
+        red.zrem("item.index.posted.{}".format(i), *dels)

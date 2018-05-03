@@ -80,6 +80,11 @@ local composeUp(repository) = {
       mem_limit: "100m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
+    "redis-dead-links": self["base_service"] + {
+      image: repository + "redis-populate:latest",
+      mem_limit: "100m",
+      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'while [ 1 ] ; do python ./purge-dead-links.py --host redis ; sleep 6000 ; done '"],
+    },
     "play-app": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
     "play-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
     "corenlp": self["base_service"] + newCoreNlp(repository, []),

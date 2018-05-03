@@ -35,5 +35,5 @@ while [ 1 ] ; do
         redis-cli${host}${port} zrem item.index.posted.${expire} $IDS
       fi
     done
-    sleep 1000
+    sleep 6000
 done

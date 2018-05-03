@@ -54,14 +54,16 @@ FROM redis
 MAINTAINER dick <noreply@shunyet.com>
 RUN set -xe \
   && apt-get -yq update \
-  && DEBIAN_FRONTEND=noninteractive apt-get -yq install curl netcat-openbsd iputils-ping vim \
+  && DEBIAN_FRONTEND=noninteractive apt-get -yq install python2.7 python2.7-dev libz-dev libxml2-dev libxslt1-dev python-pip curl netcat-openbsd iputils-ping vim \
   && curl -sSL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh -o /wait-for-it.sh \
+  && pip install requests redis lxml python_dateutil \
   && chmod u+x /wait-for-it.sh \
   && apt-get remove -yq curl \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 COPY ./redin.tmp ./redin.tmp
 COPY ./purge-old.sh ./purge-old.sh
+COPY ./purge-dead-links.py ./purge-dead-links.py
     """)
 
 ret = subprocess.call([join(wdir, '../ecr-build-and-push.sh'), join(wdir, 'Dockerfile.tmp'), 'redis-populate:latest'], cwd=wdir)
