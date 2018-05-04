@@ -73,7 +73,7 @@ local composeUp(repository) = {
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "100m",
-      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
+      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c '( getent aliases redis || getent hosts redis ) && cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
     },
     "redis-depopulate": self["base_service"] + {
       image: repository + "redis-populate:latest",
