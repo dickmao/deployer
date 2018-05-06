@@ -23,18 +23,19 @@ except:
 table = ['geonameid','name','asciiname','alternatenames','latitude','longitude','featureclass','featurecode','countrycode','cc2','admin1code','admin2code','admin3code','admin4code','population','elevation','dem','timezone','modificationdate']
 
 commands = []
-with open(join(wdir, ".play-app/conf/NY.icare.tsv"), 'r') as fp:
-    for line in fp:
-        arr = line.rstrip('\n').split('\t')
-        if arr[6] == "P":
-            commands.append(["ZADD", "geoitem.index.name", "0", "{}:{}".format(arr[2].lower(), arr[2])])
-            commands.append(["SADD", "georitem.{}".format(arr[2]), arr[0]])
-            e = dict(zip(table[1:], arr[1:]))
-            for k,v in e.iteritems():
-                if arr[0] and k and v:
-                    commands.append(["HSET", "geoitem.{}".format(arr[0]), k, v])
-        if arr[7] == "PPLX":
-            commands.append(["GEOADD", "pplx.geohash.coords", arr[5], arr[4], arr[0]])
+for state in ["CA", "NY"]:
+    with open(join(wdir, ".play-app/conf/{}.icare.tsv".format(state)), 'r') as fp:
+        for line in fp:
+            arr = line.rstrip('\n').split('\t')
+            if arr[6] == "P":
+                commands.append(["ZADD", "geoitem.index.name", "0", "{}:{}".format(arr[2].lower(), arr[2])])
+                commands.append(["SADD", "georitem.{}".format(arr[2]), arr[0]])
+                e = dict(zip(table[1:], arr[1:]))
+                for k,v in e.iteritems():
+                    if arr[0] and k and v:
+                        commands.append(["HSET", "geoitem.{}".format(arr[0]), k, v])
+            if arr[7] == "PPLX":
+                commands.append(["GEOADD", "pplx.geohash.coords", arr[5], arr[4], arr[0]])
 
 def gen_redis_proto(*cmd):
     proto = ""
