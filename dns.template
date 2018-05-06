@@ -585,7 +585,7 @@
               "HostedZoneName" : "keeyosk.com.",
               "Comment" : "Zone apex alias targeted to LoadBalancer.",
               "RecordSets" : [ {
-                  "Name" : "keeyosk.com.",
+                  "Name" : "ny.keeyosk.com.",
                   "Type" : "A",
                   "AliasTarget" : {
                       "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
