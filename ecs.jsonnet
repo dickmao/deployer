@@ -35,6 +35,10 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
       ports: [ "9000" ],
     },
+    "play-sf": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
+      ports: [ "9001" ],
+      command: [ "-Dconfig.file=conf/sfbay.conf" ],
+    },
     "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     "corenlp": self["base_service"] + devJsonnetTemplate.newCoreNlp(repository, []) + {
       image: repository + "corenlp@sha256:64ba4830b10b75f4da7abd80f9e05512af3196e2d89ac26383a04495992856f0",
