@@ -459,7 +459,7 @@
         "LoadBalancer": {
           "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
           "Properties": {
-            "Scheme": "{{ elb_scheme | default('internal') }}",
+            "Scheme": "internet-facing",
             "Subnets": [{
               "Fn::GetAtt": [
                   "VPCStack",
@@ -494,11 +494,29 @@
               "Field": "host-header",
               "Values": [ "sf.*" ]
             }],
-            "ListenerArn": { "Ref": "LoadBalancerListener" },
+            "ListenerArn": { "Ref": "playLoadBalancerListener" },
             "Priority": 1
           }
         },
         "LoadBalancerListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener", 
+            "Properties": {
+                "LoadBalancerArn": {
+                    "Ref": "LoadBalancer"
+                }, 
+                "Port": 6800,
+                "Protocol": "HTTP", 
+                "DefaultActions": [
+                    {
+                        "Type": "forward", 
+                        "TargetGroupArn": {
+                            "Ref": "DefaultTargetGroup"
+                        }
+                    }
+                ]
+            }
+        },
+        "playLoadBalancerListener": {
             "Type": "AWS::ElasticLoadBalancingV2::Listener", 
             "Properties": {
                 "LoadBalancerArn": {
@@ -554,42 +572,51 @@
                 "SourceSecurityGroupId": {
                   "Ref": "EcsInstanceSecurityGroup"
                 }
-            },{
+              },{
                 "IpProtocol": "tcp",
                 "FromPort": 80,
                 "ToPort": 9000,
                 "CidrIp" : {
-                    "Fn::If": [
-                        "InternetFacing",
-                        {"Ref": "RemoteAccessCIDR"},
-                        {"Ref": "AWS::NoValue"}
-                    ]
-                },
-                "SourceSecurityGroupId" : {
-                    "Fn::If": [
-                        "InternetFacing",
-                        {"Ref": "AWS::NoValue"},
-                        {"Ref": "EcsInstanceSecurityGroup"}
-                    ]
+                  "Ref": "RemoteAccessCIDR"
+                }
+              },{
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 9001,
+                "CidrIp" : {
+                  "Ref": "RemoteAccessCIDR"
                 }
               }]
-            }
+          }
         },
         "AliasRecordSetGroup": {
             "Type" : "AWS::Route53::RecordSetGroup",
-            "Condition": "InternetFacing",
             "Properties" : {
               "HostedZoneName" : "keeyosk.com.",
               "Comment" : "Zone apex alias targeted to LoadBalancer.",
               "RecordSets" : [ {
-                  "Name" : "ny.keeyosk.com.",
+                  "Name" : {
+                      "Fn::If": [
+                           "InternetFacing", "ny.keeyosk.com",
+                           {
+                             "Fn::Join": [ ".", [ "ny", { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
+                           }
+                      ]
+                  },
                   "Type" : "A",
                   "AliasTarget" : {
                       "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
                       "DNSName" : { "Fn::GetAtt" : ["LoadBalancer", "DNSName"] }
                   }
               }, {
-                  "Name" : "sf.keeyosk.com.",
+                  "Name" : {
+                      "Fn::If": [
+                           "InternetFacing", "sf.keeyosk.com",
+                           {
+                             "Fn::Join": [ ".", [ "sf", { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
+                           }
+                      ]
+                  },
                   "Type" : "A",
                   "AliasTarget" : {
                       "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
@@ -1184,8 +1211,8 @@
                                      "        return",
                                      "",
                                      "    ecs = boto3.client('ecs')",
-                                     "    if not any([c['name'] == 'play-app' for c in ecs.describe_tasks(cluster=cluster, tasks=[event['detail']['TaskArn']])['tasks'][0]['containers']]):",
-                                     "        print(\"This event has no play-apps. No action taken.\")",
+                                     "    if not any([re.search(r'frontend', c['name']) for c in ecs.describe_tasks(cluster=cluster, tasks=[event['detail']['TaskArn']])['tasks'][0]['containers']]):",
+                                     "        print(\"This event has no frontends. No action taken.\")",
                                      "        return",
                                      "",
                                      "    inst = event['detail']['instance-id']",

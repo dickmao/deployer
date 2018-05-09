@@ -25,11 +25,12 @@ local newMongo(repository, command, env) = {
   environment: env,
 };
 
-local newRedis(repository, env) = {
+local newRedis(repository, port, env) = {
   image: "redis",
   mem_limit: "300m",
-  ports: [ "6379:6379" ],
-  environment: env,
+  environment: env + ["SERVICE_" + port + "_NAME=_redis._tcp"],
+  ports: [ port + ":" + port ],
+  volumes: [ "redis:/data" ],
 };
 
 local newPlayApp(repository, env) = {
@@ -62,13 +63,10 @@ local composeUp(repository) = {
     scrapyd_volume_mounted_service:: self["base_service"] + {
       volumes: [ "scrapyd:/var/lib/scrapyd" ],
     },
-    redis_volume_mounted_service:: self["base_service"] + {
-      volumes: [ "redis:/data" ],
-    },
     mongo_volume_mounted_service:: self["base_service"] + {
       volumes: [ "mongo:/var/lib/mongodb" ],
     },
-    redis: self["redis_volume_mounted_service"] + newRedis(repository, []),
+    "redis": newRedis(repository, "6379", []),
     mongo: self["mongo_volume_mounted_service"] + newMongo(repository, [ "mongod" ], []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
@@ -85,8 +83,8 @@ local composeUp(repository) = {
       mem_limit: "100m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'while [ 1 ] ; do python ./purge-dead-links.py --host redis ; sleep 6000 ; done '"],
     },
-    "play-app": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
-    "play-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
+    "ny-frontend": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
+    "ny-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
     "corenlp": self["base_service"] + newCoreNlp(repository, []),
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
     "scrapyd-seed": self["scrapyd_volume_mounted_service"] + {
