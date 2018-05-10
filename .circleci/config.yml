@@ -223,7 +223,7 @@ jobs:
           command: |
             set -x
             source ./bash_aliases.sh
-            docke-ecs play-email bin/success-function
+            docke-ecs ny-email bin/success-function
 
   cron-spiders:
     docker:
