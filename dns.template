@@ -631,7 +631,6 @@
                            }
                       ]
                   },
->>>>>>> dev
                   "Type" : "A",
                   "AliasTarget" : {
                       "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
