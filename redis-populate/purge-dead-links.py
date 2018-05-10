@@ -20,7 +20,9 @@ for db in range(11):
             if bool(tree.xpath('//section[@class="body"]//div[@class="removed"]')):
                 dels.append(i[0])
         except requests.exceptions.RequestException as e:
-            print e, link
+            print e, link, i[0]
+            dels.append(i[0])
+
     if dels:
         red.delete(*["item.{}".format(i) for i in dels])
         red.zrem("item.index.price", *dels)
