@@ -27,7 +27,6 @@ while [[ $# -gt 0 ]] ; do
       ;;    
   esac
 done
-
 mode=${mode:-dev}
 wd=$(dirname $0)
 if [ $mode == "dev" ]; then

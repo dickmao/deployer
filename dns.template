@@ -459,7 +459,7 @@
         "LoadBalancer": {
           "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
           "Properties": {
-            "Scheme": "{{ elb_scheme | default('internal') }}",
+            "Scheme": "internet-facing",
             "Subnets": [{
               "Fn::GetAtt": [
                   "VPCStack",
@@ -483,6 +483,21 @@
             }]
           }
         },
+        "ListenerRule": {
+          "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+          "Properties": {
+            "Actions": [{
+              "Type": "forward",
+              "TargetGroupArn": { "Ref": "sfTargetGroup" }
+            }],
+            "Conditions": [{
+              "Field": "host-header",
+              "Values": [ "sf.*" ]
+            }],
+            "ListenerArn": { "Ref": "playLoadBalancerListener" },
+            "Priority": 1
+          }
+        },
         "LoadBalancerListener": {
             "Type": "AWS::ElasticLoadBalancingV2::Listener", 
             "Properties": {
@@ -500,7 +515,25 @@
                     }
                 ]
             }
-        }, 
+        },
+        "playLoadBalancerListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener", 
+            "Properties": {
+                "LoadBalancerArn": {
+                    "Ref": "LoadBalancer"
+                }, 
+                "Port": 80,
+                "Protocol": "HTTP", 
+                "DefaultActions": [
+                    {
+                        "Type": "forward", 
+                        "TargetGroupArn": {
+                            "Ref": "nyTargetGroup"
+                        }
+                    }
+                ]
+            }
+        },
         "DefaultTargetGroup": {
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
             "Properties": {
@@ -539,53 +572,52 @@
                 "SourceSecurityGroupId": {
                   "Ref": "EcsInstanceSecurityGroup"
                 }
-            },{
+              },{
                 "IpProtocol": "tcp",
                 "FromPort": 80,
                 "ToPort": 9000,
                 "CidrIp" : {
-                    "Fn::If": [
-                        "InternetFacing",
-                        {"Ref": "RemoteAccessCIDR"},
-                        {"Ref": "AWS::NoValue"}
-                    ]
-                },
-                "SourceSecurityGroupId" : {
-                    "Fn::If": [
-                        "InternetFacing",
-                        {"Ref": "AWS::NoValue"},
-                        {"Ref": "EcsInstanceSecurityGroup"}
-                    ]
+                  "Ref": "RemoteAccessCIDR"
+                }
+              },{
+                "IpProtocol": "tcp",
+                "FromPort": 80,
+                "ToPort": 9001,
+                "CidrIp" : {
+                  "Ref": "RemoteAccessCIDR"
                 }
               }]
-            }
-        },
-        "PlayLoadBalancerListener": {
-            "Type": "AWS::ElasticLoadBalancingV2::Listener", 
-            "Properties": {
-                "LoadBalancerArn": {
-                    "Ref": "LoadBalancer"
-                }, 
-                "Port": 80,
-                "Protocol": "HTTP", 
-                "DefaultActions": [
-                    {
-                        "Type": "forward", 
-                        "TargetGroupArn": {
-                            "Ref": "PlayTargetGroup"
-                        }
-                    }
-                ]
-            }
+          }
         },
         "AliasRecordSetGroup": {
             "Type" : "AWS::Route53::RecordSetGroup",
-            "Condition": "InternetFacing",
             "Properties" : {
               "HostedZoneName" : "keeyosk.com.",
               "Comment" : "Zone apex alias targeted to LoadBalancer.",
               "RecordSets" : [ {
-                  "Name" : "ny.keeyosk.com.",
+                  "Name" : {
+                      "Fn::If": [
+                           "InternetFacing", "ny.keeyosk.com",
+                           {
+                             "Fn::Join": [ ".", [ "ny", { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
+                           }
+                      ]
+                  },
+                  "Type" : "A",
+                  "AliasTarget" : {
+                      "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
+                      "DNSName" : { "Fn::GetAtt" : ["LoadBalancer", "DNSName"] }
+                  }
+              }, {
+                  "Name" : {
+                      "Fn::If": [
+                           "InternetFacing", "sf.keeyosk.com",
+                           {
+                             "Fn::Join": [ ".", [ "sf", { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
+                           }
+                      ]
+                  },
+>>>>>>> dev
                   "Type" : "A",
                   "AliasTarget" : {
                       "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
@@ -594,11 +626,11 @@
               } ]
             }            
         },
-        "PlayTargetGroup": {
+        "nyTargetGroup": {
             "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
             "Properties": {
                 "Name": { 
-                    "Fn::Join": [ "-", [ { "Ref": "EcsCluster" }, "playtg" ] ]
+                    "Fn::Join": [ "-", [ { "Ref": "EcsCluster" }, "nytg" ] ]
                 },
                 "VpcId": {
                     "Fn::GetAtt": [
@@ -608,6 +640,27 @@
                 }, 
                 "Protocol": "HTTP",
                 "Port": 9000,
+                "TargetGroupAttributes": [{
+                    "Key": "deregistration_delay.timeout_seconds",
+                    "Value": "30"
+                }],
+                "Targets": []
+            }
+        },
+        "sfTargetGroup": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup", 
+            "Properties": {
+                "Name": { 
+                    "Fn::Join": [ "-", [ { "Ref": "EcsCluster" }, "sftg" ] ]
+                },
+                "VpcId": {
+                    "Fn::GetAtt": [
+                        "VPCStack",
+                        "Outputs.VPCID"
+                    ]
+                }, 
+                "Protocol": "HTTP",
+                "Port": 9001,
                 "TargetGroupAttributes": [{
                     "Key": "deregistration_delay.timeout_seconds",
                     "Value": "30"
@@ -971,7 +1024,8 @@
                 "LaunchConfigurationName": { "Ref": "LaunchConfig" },
                 "TargetGroupARNs": [
                     { "Ref": "DefaultTargetGroup" },
-                    { "Ref": "PlayTargetGroup" }
+                    { "Ref": "nyTargetGroup" },
+                    { "Ref": "sfTargetGroup" }
                 ],
                 "MinSize": {"Ref": "AsgMaxSize"},
                 "MaxSize": {"Ref": "AsgMaxSize"},
@@ -1158,8 +1212,8 @@
                                      "        return",
                                      "",
                                      "    ecs = boto3.client('ecs')",
-                                     "    if not any([c['name'] == 'play-app' for c in ecs.describe_tasks(cluster=cluster, tasks=[event['detail']['TaskArn']])['tasks'][0]['containers']]):",
-                                     "        print(\"This event has no play-apps. No action taken.\")",
+                                     "    if not any([re.search(r'frontend', c['name']) for c in ecs.describe_tasks(cluster=cluster, tasks=[event['detail']['TaskArn']])['tasks'][0]['containers']]):",
+                                     "        print(\"This event has no frontends. No action taken.\")",
                                      "        return",
                                      "",
                                      "    inst = event['detail']['instance-id']",

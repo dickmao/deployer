@@ -23,8 +23,9 @@ except:
 table = ['geonameid','name','asciiname','alternatenames','latitude','longitude','featureclass','featurecode','countrycode','cc2','admin1code','admin2code','admin3code','admin4code','population','elevation','dem','timezone','modificationdate']
 
 commands = []
-for state in ["CA", "NY"]:
+for i, state in enumerate(["NY", "CA"]):
     with open(join(wdir, ".play-app/conf/{}.icare.tsv".format(state)), 'r') as fp:
+        commands.append(["SELECT", str(i)])
         for line in fp:
             arr = line.rstrip('\n').split('\t')
             if arr[6] == "P":

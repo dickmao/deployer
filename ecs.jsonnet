@@ -10,13 +10,12 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     base_service:: {
       dns_search: std.extVar("cluster") + ".internal",
     },
-    scrapyd_volume_mounted_service: self["base_service"] + {
+    scrapyd_volume_mounted_service:: self["base_service"] + {
       volumes: [ "/efs/var/lib/scrapyd:/var/lib/scrapyd" ],
     },
-    redis_volume_mounted_service: self["base_service"] + {
+    redis+: self["base_service"] {
       volumes: [ "/efs/var/lib/redis:/data" ],
     },
-    redis: self["redis_volume_mounted_service"] + devJsonnetTemplate.newRedis(repository, [ "SERVICE_6379_NAME=_redis._tcp" ]),
     mongo:: self["mongo_volume_mounted_service"],
     # this is a task but libcompose/project needs to read a ServiceConfig
     # and I'm not about to modify libcompose
@@ -32,10 +31,14 @@ devJsonnetTemplate.composeUp(repository=repository) + {
          }
       },
     },
-    "play-app": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
+    "ny-frontend": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
       ports: [ "9000" ],
     },
-    "play-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
+    "sf-frontend": self["base_service"] + devJsonnetTemplate.newPlayApp(repository, play_env) + {
+      ports: [ "9001" ],
+      command: [ "-Dconfig.file=conf/sfbay.conf", "-Dhttp.port=9001" ],
+    },
+    "ny-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     "corenlp": self["base_service"] + devJsonnetTemplate.newCoreNlp(repository, []) + {
       image: repository + "corenlp@sha256:64ba4830b10b75f4da7abd80f9e05512af3196e2d89ac26383a04495992856f0",
     },
