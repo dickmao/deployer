@@ -611,6 +611,20 @@
               }, {
                   "Name" : {
                       "Fn::If": [
+                           "InternetFacing", "keeyosk.com",
+                           {
+                             "Fn::Join": [ ".", [ { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
+                           }
+                      ]
+                  },
+                  "Type" : "A",
+                  "AliasTarget" : {
+                      "HostedZoneId" : { "Fn::GetAtt" : ["LoadBalancer", "CanonicalHostedZoneID"] },
+                      "DNSName" : { "Fn::GetAtt" : ["LoadBalancer", "DNSName"] }
+                  }
+              }, {
+                  "Name" : {
+                      "Fn::If": [
                            "InternetFacing", "sf.keeyosk.com",
                            {
                              "Fn::Join": [ ".", [ "sf", { "Ref": "EcsCluster" }, "keeyosk", "com" ] ]
