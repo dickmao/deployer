@@ -13,15 +13,19 @@ args = parser.parse_args()
 for db in range(11):
     red = redis.StrictRedis(host=args.host, port=args.port, db=db)
     dels = []
-    for i in red.zscan_iter('item.index.score'):
-        link = red.hget("item.{}".format(i[0]), 'link')
-        try:
-            tree = html.fromstring(requests.get(link).content)
-            if bool(tree.xpath('//section[@class="body"]//div[@class="removed"]')):
+    try:
+        for i in red.zscan_iter('item.index.score'):
+            link = red.hget("item.{}".format(i[0]), 'link')
+            try:
+                tree = html.fromstring(requests.get(link).content)
+                if bool(tree.xpath('//section[@class="body"]//div[@class="removed"]')):
+                    dels.append(i[0])
+            except requests.exceptions.RequestException as e:
+                print e, link, i[0]
                 dels.append(i[0])
-        except requests.exceptions.RequestException as e:
-            print e, link, i[0]
-            dels.append(i[0])
+    except redis.exceptions.ConnectionError as e:
+        print "db={} {}".format(db, e)
+        next
 
     if dels:
         red.delete(*["item.{}".format(i) for i in dels])
