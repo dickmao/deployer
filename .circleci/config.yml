@@ -131,12 +131,32 @@ jobs:
       - run:
           command: |
             set -x
+            ./ecs-compose-up.sh -s dedupe
+      - persist_to_workspace:
+          root: ../.cache
+          paths:
+            - "ecs-cli"
+
+  once-dedupe:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - attach_workspace:
+          at: ecs-state
+      - attach_workspace:
+          at: ~/.cache
+      - run:
+          command: |
+            set -x
             source ./bash_aliases.sh
             # I need /var/lib/scrapyd to be made by ecs-compose-up-except-dedupe
-            # I can now touch digest there so that dedupe doesn't go after any existing Data
+            # I can now touch digest there so that dedupe doesn't start processing any existing Data
             # Then when/if spiders update Marker, dedupe will act en masse
             for m in 0 1 ; do ssh-ecs $m sudo mkdir -p /efs/var/lib/scrapyd/items/tutorial/newyork \&\& sudo touch /efs/var/lib/scrapyd/items/tutorial/newyork/digest ; done
-            ./ecs-compose-up.sh -s dedupe
+            ./ecs-compose-up.sh -s once-dedupe
       - persist_to_workspace:
           root: ../.cache
           paths:
@@ -329,19 +349,22 @@ workflows:
       - login-node:
           requires:
             - ecs-compose-up-except-dedupe
-      - ecs-compose-up-dedupe:
+      - once-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
-            - ecs-compose-up-dedupe
+            - once-dedupe
       - spider-listingsproject:
           requires:
-            - ecs-compose-up-dedupe
+            - once-dedupe
       - wait-for-digest:
           requires:
             - spider-newyork
             - spider-listingsproject
+      - ecs-compose-up-dedupe:
+          requires:
+            - wait-for-digest
       - hold:
           type: approval
           requires: 
@@ -378,12 +401,12 @@ workflows:
       - login-node:
           requires:
             - ecs-compose-up-except-dedupe
-      - ecs-compose-up-dedupe:
+      - once-dedupe:
           requires:
             - ecs-compose-up-except-dedupe
       - spider-newyork:
           requires:
-            - ecs-compose-up-dedupe
+            - once-dedupe
       - wait-for-digest:
           requires:
             - spider-newyork
@@ -391,6 +414,9 @@ workflows:
           requires:
             - wait-for-digest
       - cron-spiders:
+          requires:
+            - wait-for-digest
+      - ecs-compose-up-dedupe:
           requires:
             - wait-for-digest
 

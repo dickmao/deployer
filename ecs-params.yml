@@ -10,3 +10,6 @@ task_definition:
     mongo-flush:
       task: true
       essential: true
+    once-dedupe:
+      task: true
+      essential: true
