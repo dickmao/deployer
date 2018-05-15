@@ -1,0 +1,16 @@
+# DO NOT EDIT.  Dynamic from submitJob.sh
+---
+version: "2"
+services: 
+  corenlp: 
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest"
+    ports: 
+      - "9005"
+    volumes: 
+      - "docker_scratch:/scratch"
+  fit:
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/fit:ad0001"
+    volumes: 
+      - "docker_scratch:/scratch"
+volumes: 
+    docker_scratch: null

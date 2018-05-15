@@ -1,0 +1,6 @@
+FROM alpine:latest
+MAINTAINER dick <noreply@shunyet.com>
+RUN apk --update add py-pip bash docker &&   pip install docker-compose awscli &&   aws configure set aws_access_key_id AKIAJAGJ5BFY4M4B6JDQ &&   aws configure set aws_secret_access_key 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 &&   aws configure set region us-east-2
+COPY docker-login-compose.sh /
+COPY docker-compose.yml /
+ENTRYPOINT ["./docker-login-compose.sh", "ad0001"]

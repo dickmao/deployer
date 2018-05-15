@@ -1,0 +1,17 @@
+FROM python:2.7
+MAINTAINER dick <noreply@shunyet.com>
+RUN apt-get -yq update &&     apt-get -y install libenchant1c2a &&     apt-get clean &&     rm -rf /var/lib/apt/lists/*
+RUN pip install nltk requests numpy pytz gensim matplotlib python_dateutil &&     pip install pyenchant scikit_learn awscli &&     python -m nltk.downloader punkt &&     aws configure set aws_access_key_id AKIAJAGJ5BFY4M4B6JDQ &&     aws configure set aws_secret_access_key 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 &&     aws configure set region us-east-2
+COPY .python-stanford-corenlp /python-stanford-corenlp
+RUN cd /python-stanford-corenlp && python setup.py install
+
+COPY .fit/blog.ipynb /./
+COPY .fit/dedupe-on-demand.sh /./
+COPY .fit/dedupe.ipynb /./
+COPY .fit/dedupe.py /./
+COPY .fit/features.py /./
+COPY .fit/firstnames /./
+COPY .fit/reader.py /./
+COPY .fit/s3_utils.py /./
+COPY .ad0001.py /ad0001.py
+ENTRYPOINT [ "python", "ad0001.py", "--corenlp-uri", "http://corenlp:9005" ]

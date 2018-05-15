@@ -1,0 +1,27 @@
+{
+    "jobDefinitionName": "ad0001",
+    "type": "container",
+    "containerProperties": {
+        "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:ad0001",
+        "vcpus": 2,
+        "memory": 4000,
+        "jobRoleArn": "arn:aws:iam::303634175659:role/aws-batch-BatchJobRole-3LEMIAHEVMWG",
+        "volumes": [{
+            "host": {"sourcePath": "/var/run/docker.sock"},
+            "name": "dind"
+        },{
+            "name": "docker_scratch"
+        }],
+        "mountPoints": [{
+            "containerPath": "/var/run/docker.sock",
+            "readOnly": false,
+            "sourceVolume": "dind"
+        },{
+            "containerPath": "/scratch",
+            "readOnly": false,
+            "sourceVolume": "docker_scratch"
+        }],
+        "privileged": true
+    },
+    "retryStrategy": {"attempts": 1}
+}
