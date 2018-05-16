@@ -5,7 +5,7 @@
         "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:ad0001",
         "vcpus": 2,
         "memory": 4000,
-        "jobRoleArn": "arn:aws:iam::303634175659:role/aws-batch-BatchJobRole-3LEMIAHEVMWG",
+        "jobRoleArn": "arn:aws:iam::303634175659:role/aws-batch-BatchJobRole-Q5AR9XGV6F74",
         "volumes": [{
             "host": {"sourcePath": "/var/run/docker.sock"},
             "name": "dind"

@@ -5,13 +5,16 @@ RUN pip install nltk requests numpy pytz gensim matplotlib python_dateutil &&   
 COPY .python-stanford-corenlp /python-stanford-corenlp
 RUN cd /python-stanford-corenlp && python setup.py install
 
-COPY .fit/blog.ipynb /./
+COPY .fit/.circleci/config.yml /.circleci/
+COPY .fit/0001.notes /./
 COPY .fit/dedupe-on-demand.sh /./
 COPY .fit/dedupe.ipynb /./
 COPY .fit/dedupe.py /./
+COPY .fit/docker-build.sh /./
 COPY .fit/features.py /./
 COPY .fit/firstnames /./
+COPY .fit/get_data.py /./
 COPY .fit/reader.py /./
 COPY .fit/s3_utils.py /./
 COPY .ad0001.py /ad0001.py
-ENTRYPOINT [ "python", "ad0001.py", "--corenlp-uri", "http://corenlp:9005" ]
+ENTRYPOINT [ "python", "ad0001.py" ]

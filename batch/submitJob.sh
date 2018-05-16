@@ -161,7 +161,7 @@ function construct_compose {
 version: "2"
 services: 
   corenlp: 
-    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:latest"
+    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:3.8.0"
     ports: 
       - "9005"
     volumes: 
