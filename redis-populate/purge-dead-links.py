@@ -18,7 +18,8 @@ for db in range(11):
             link = red.hget("item.{}".format(i[0]), 'link')
             try:
                 tree = html.fromstring(requests.get(link).content)
-                if bool(tree.xpath('//section[@class="body"]//div[@class="removed"]')):
+                if (bool(tree.xpath('//section[@class="body"]//div[@class="removed"]')) or
+                    bool(tree.xpath('//body//p/text()[contains(translate(., "ERO", "ero"), "404 error")]'))):
                     dels.append(i[0])
             except requests.exceptions.RequestException as e:
                 print e, link, i[0]
