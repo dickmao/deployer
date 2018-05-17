@@ -118,8 +118,6 @@ RUN apt-get -yq update && \
 RUN pip install nltk requests numpy pytz gensim matplotlib python_dateutil && \
     pip install pyenchant scikit_learn awscli && \
     python -m nltk.downloader punkt && \
-    aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID && \
-    aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY && \
     aws configure set region $AWS_REGION
 COPY .python-stanford-corenlp /python-stanford-corenlp
 RUN cd /python-stanford-corenlp && python setup.py install
@@ -143,8 +141,6 @@ FROM $FROM
 MAINTAINER dick <noreply@shunyet.com>
 RUN apk --update add py-pip bash docker && \
   pip install docker-compose awscli && \
-  aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID && \
-  aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY && \
   aws configure set region $AWS_REGION
 COPY docker-login-compose.sh /
 COPY docker-compose.yml /
@@ -177,8 +173,6 @@ EOF
 
 set +x
 # IAM roles can be set but I want to be able to run fit locally
-AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
-AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
 AWS_REGION=$(aws configure get region)
 set -x
 construct_compose
