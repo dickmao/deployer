@@ -1,8 +1,8 @@
 {
-    "jobDefinitionName": "ad0001",
+    "jobDefinitionName": "aa0002",
     "type": "container",
     "containerProperties": {
-        "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:ad0001",
+        "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:aa0002",
         "vcpus": 2,
         "memory": 4000,
         "jobRoleArn": "arn:aws:iam::303634175659:role/aws-batch-BatchJobRole-CYL43WW3UZPG",

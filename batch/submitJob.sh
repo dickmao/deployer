@@ -102,14 +102,8 @@ function push_image_fit {
     EARGS=$(printf ', "%s"' "${args[@]}")
   fi
 
-  LATEST=$(get_latest "fit" $VERNUM)
-  if [ ! -z $LATEST ]; then
-    FROM=$LATEST
-  else
-    FROM="python:2.7"
-  fi
   cat > ./Dockerfile.fit <<EOF
-FROM $FROM
+FROM python:2.7
 MAINTAINER dick <noreply@shunyet.com>
 RUN apt-get -yq update && \
     apt-get -y install libenchant1c2a && \
@@ -130,14 +124,8 @@ EOF
 }
 
 function push_image_jobdef {
-  LATEST=$(get_latest "jobdef" $VERNUM)
-  if [ ! -z $LATEST ]; then
-    FROM="$LATEST"
-  else
-    FROM="alpine:latest"
-  fi
   cat > ./Dockerfile.jobdef <<EOF
-FROM $FROM
+FROM alpine:latest
 MAINTAINER dick <noreply@shunyet.com>
 RUN apk --update add py-pip bash docker && \
   pip install docker-compose awscli && \

@@ -10,7 +10,7 @@ docker build --file $DOCKERFILE --force-rm -t $TAG .
 if [ ! -z "$OLDIMAGE" ]; then
     CHILDREN=$(docker images --filter "since=${OLDIMAGE}" --filter "before=$TAG" --quiet)
     if [ ! -z "$CHILDREN" ] && ! docker inspect --format='{{.Id}} {{.Parent}}' $CHILDREN | grep $OLDIMAGE ; then
-        docker rmi -f $OLDIMAGE
+        docker rmi -f $OLDIMAGE || true
     fi
 fi
 
