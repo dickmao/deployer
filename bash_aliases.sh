@@ -254,7 +254,8 @@ function scp-ecs {
 }
 
 function awslog {
-  aws logs get-log-events --log-group-name "/aws/batch/job" --log-stream-name $(aws logs describe-log-streams --log-group-name "/aws/batch/job" --descending --order-by LastEventTime --max-items 10 | jq -r ' .logStreams[] | .logStreamName ' | grep $1 | head -1 ) --no-start-from-head | jq -r ' .events | .[].message '
+  local which=${2:-1}
+  aws logs get-log-events --log-group-name "/aws/batch/job" --log-stream-name $(aws logs describe-log-streams --log-group-name "/aws/batch/job" --descending --order-by LastEventTime --max-items 10 | jq -r ' .logStreams[] | .logStreamName ' | grep $1 | head -$which | tac | head -1 ) --no-start-from-head | jq -r ' .events | .[].message '
 }
 function awslog2 {
   group_name='/aws/batch/job'

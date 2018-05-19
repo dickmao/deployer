@@ -120,7 +120,7 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-$ECSCLIBIN $command --instance-type t2.medium --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+$ECSCLIBIN $command --instance-type m4.large --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair dick --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
 set +o pipefail
 
 
