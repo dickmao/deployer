@@ -20,6 +20,7 @@ while [[ $# -gt 0 ]] ; do
   esac
 done
 
+ACCOUNTID=303634175659
 SCRIPT=${1:-${HOME}/scrapy/fit.py}
 SCRIPT=$(realpath $SCRIPT)
 cd $(dirname $0)
@@ -35,7 +36,6 @@ function get_latest {
 }
 
 function build_aws_jobdef {
-  ACCOUNTID=303634175659
   REGISTRY=${ACCOUNTID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   declare -A outputs
   for kv in $(aws cloudformation describe-stacks --stack-name aws-batch | jq -r ' .Stacks[] | .Outputs[] | "\(.OutputKey)=\(.OutputValue)" '); do
@@ -53,7 +53,7 @@ function build_aws_jobdef {
     "containerProperties": {
         "image": "${REGISTRY}/jobdef:${TAG}",
         "vcpus": 2,
-        "memory": 4000,
+        "memory": 5000,
         "jobRoleArn": "$JOBROLE",
         "volumes": [{
             "host": {"sourcePath": "/var/run/docker.sock"},
@@ -106,17 +106,19 @@ function push_image_fit {
 FROM python:2.7
 MAINTAINER dick <noreply@shunyet.com>
 RUN apt-get -yq update && \
-    apt-get -y install libenchant1c2a && \
+    apt-get -y install libenchant1c2a libblas-common libblas-dev libblas3 && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 RUN pip install nltk requests numpy pytz gensim matplotlib python_dateutil && \
-    pip install pyenchant scikit_learn awscli && \
+    pip install pyenchant awscli Cython && \
     python -m nltk.downloader punkt && \
     aws configure set region $AWS_REGION
-COPY .python-stanford-corenlp /python-stanford-corenlp
-RUN cd /python-stanford-corenlp && python setup.py install
 $COPY
 COPY .$BASENAME /$BASENAME
+COPY python-stanford-corenlp /python-stanford-corenlp
+RUN pip install --user -e /python-stanford-corenlp
+COPY scikit-learn /scikit-learn
+RUN pip install --user -e /scikit-learn
 ENTRYPOINT [ "python", "$BASENAME"$EARGS ]
 EOF
 
@@ -145,13 +147,17 @@ function construct_compose {
 version: "2"
 services: 
   corenlp: 
-    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/corenlp:3.8.0"
+    image: "${ACCOUNTID}.dkr.ecr.${AWS_REGION}.amazonaws.com/corenlp:3.8.0"
+    stdin_open: true
+    tty: true
     ports: 
       - "9005"
     volumes: 
       - "docker_scratch:/scratch"
   fit:
-    image: "303634175659.dkr.ecr.us-east-2.amazonaws.com/fit:$TAG"
+    image: "${ACCOUNTID}.dkr.ecr.${AWS_REGION}.amazonaws.com/fit:${TAG}"
+    stdin_open: true
+    tty: true
     volumes: 
       - "docker_scratch:/scratch"
 volumes: 

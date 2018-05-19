@@ -1,10 +1,10 @@
 {
-    "jobDefinitionName": "aa0002",
+    "jobDefinitionName": "ab0002",
     "type": "container",
     "containerProperties": {
-        "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:aa0002",
+        "image": "303634175659.dkr.ecr.us-east-2.amazonaws.com/jobdef:ab0002",
         "vcpus": 2,
-        "memory": 4000,
+        "memory": 5000,
         "jobRoleArn": "arn:aws:iam::303634175659:role/aws-batch-BatchJobRole-CYL43WW3UZPG",
         "volumes": [{
             "host": {"sourcePath": "/var/run/docker.sock"},
