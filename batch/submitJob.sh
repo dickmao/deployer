@@ -129,8 +129,8 @@ function push_image_jobdef {
   cat > ./Dockerfile.jobdef <<EOF
 FROM alpine:latest
 MAINTAINER dick <noreply@shunyet.com>
-RUN apk --update add py-pip bash docker && \
-  pip install docker-compose awscli && \
+RUN apk --update add python3 bash docker && \
+  pip3 install docker-compose awscli && \
   aws configure set region $AWS_REGION
 COPY docker-login-compose.sh /
 COPY docker-compose.yml /

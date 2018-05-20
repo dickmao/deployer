@@ -81,7 +81,7 @@ local composeUp(repository) = {
     "redis-dead-links": self["base_service"] + {
       image: repository + "redis-populate:latest",
       mem_limit: "100m",
-      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'while [ 1 ] ; do python ./purge-dead-links.py --host redis ; sleep 6000 ; done '"],
+      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'while [ 1 ] ; do python ./purge-dead-links.py --host redis ; sleep 1200 ; done '"],
     },
     "ny-frontend": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
     "ny-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
