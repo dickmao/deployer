@@ -70,17 +70,17 @@ local composeUp(repository) = {
     mongo: self["mongo_volume_mounted_service"] + newMongo(repository, [ "mongod" ], []),
     "redis-populate": self["base_service"] + {
       image: repository + "redis-populate:latest",
-      mem_limit: "300m",
-      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c '( getent aliases redis || getent hosts redis ) && cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
+      mem_limit: "200m",
+      command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c '( getent aliases redis || getent hosts redis || ( sleep 60 && getent hosts redis ) ) && cat ./redin.tmp | redis-cli -h redis --pipe --pipe-timeout 100'"],
     },
     "redis-depopulate": self["base_service"] + {
       image: repository + "redis-populate:latest",
-      mem_limit: "100m",
+      mem_limit: "200m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
     "redis-dead-links": self["base_service"] + {
       image: repository + "redis-populate:latest",
-      mem_limit: "100m",
+      mem_limit: "200m",
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c 'while [ 1 ] ; do python ./purge-dead-links.py --host redis ; sleep 1200 ; done '"],
     },
     "ny-frontend": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
