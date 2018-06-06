@@ -1065,6 +1065,7 @@
                 "ManagedPolicyArns": [
                     "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role",
                     "arn:aws:iam::aws:policy/AmazonRoute53FullAccess",
+                    "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser",
                     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryPowerUser"
                 ],
                 "Path": "/",
@@ -1076,6 +1077,23 @@
                       "Effect": "Allow",
                       "Action": [
                         "events:PutEvents"
+                      ],
+                      "Resource": "*"
+                    }]
+                  }
+                },{
+                  "PolicyName": "ScrapoxyAllow",
+                  "PolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [{
+                      "Effect": "Allow",
+                      "Action": [
+                          "ec2:DescribeSecurityGroups",
+                          "ec2:DescribeImages",
+                          "ec2:CreateSecurityGroup",
+                          "ec2:CopySnapshot",
+                          "ec2:CopyImage",
+                          "ec2:AuthorizeSecurityGroupIngress"
                       ],
                       "Resource": "*"
                     }]
