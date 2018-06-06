@@ -106,7 +106,7 @@ function getServiceConfigs {
   eval $(getTaskConfigs)
   declare -A hofa
   docker_compose="docker-compose"
-  if [ $mode == "ecs" ] ; then
+  if [ ! -z "${ECS_CLUSTER:-}" ]; then
     docker_compose="docker-compose-1.18.0"
   fi
   for s0 in $(${docker_compose} -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do
