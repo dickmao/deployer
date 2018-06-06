@@ -9,7 +9,7 @@ local aws_env = [
 
 local newScrapyd(repository, command, env) = {
   image: repository + "scrapyd-deploy:latest",
-  mem_limit: "300m",
+  mem_limit: "700m",
   ports: [ "6800:6800" ],
   command: command,
   environment: aws_env + env
