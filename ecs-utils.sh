@@ -100,12 +100,12 @@ EOF
     echo Warn Could not find PlayAppEIP for $STACK
   fi
 
-  if [ -z "${AWS_ACCESS_KEY_ID}" ] ; then
+  if [ -z "${AWS_ACCESS_KEY_ID-}" ] ; then
     AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id)
   fi
-  if [ -z "${AWS_SECRET_ACCESS_KEY}" ] ; then
+  if [ -z "${AWS_SECRET_ACCESS_KEY-}" ] ; then
     AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key)
-    if [ -z "${AWS_SECRET_ACCESS_KEY}" ] ; then
+    if [ -z "${AWS_SECRET_ACCESS_KEY-}" ] ; then
       echo Error Could not get aws keys for $STACK
       exit -1
     fi
