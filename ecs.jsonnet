@@ -56,8 +56,6 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       ports: [ "8888:8888", "8889:8889" ],
       environment: devJsonnetTemplate.aws_env + [
         "SERVICE_8888_NAME=_scrapoxy._tcp",
-        "PROVIDERS_AWSEC2_ACCESSKEYID=" + std.extVar("AWS_ACCESS_KEY_ID"),
-        "PROVIDERS_AWSEC2_SECRETACCESSKEY=" + std.extVar("AWS_SECRET_ACCESS_KEY"),
         "COMMANDER_PASSWORD=foobar123",
         "PROVIDERS_AWSEC2_REGION=" + std.extVar("AWS_DEFAULT_REGION"),
         "PROVIDERS_AWSEC2_INSTANCE_INSTANCETYPE=t2.nano",
