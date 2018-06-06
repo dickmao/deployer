@@ -99,13 +99,17 @@ EOF
   if [ $mode == "ecs" ] && [ -z $EIP_ADDRESS ]; then
     echo Warn Could not find PlayAppEIP for $STACK
   fi
-  python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=$(aws configure get aws_access_key_id) --var AWS_SECRET_ACCESS_KEY=$(aws configure get aws_secret_access_key) --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD} --var GIT_BRANCH=${CIRCLE_BRANCH:-${GIT_BRANCH}} --var EIP_ADDRESS=${EIP_ADDRESS}
+  python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD} --var GIT_BRANCH=${CIRCLE_BRANCH:-${GIT_BRANCH}} --var EIP_ADDRESS=${EIP_ADDRESS}
 }
 
 function getServiceConfigs {
   eval $(getTaskConfigs)
   declare -A hofa
-  for s0 in $(docker-compose -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do
+  docker_compose="docker-compose"
+  if [ $mode == "ecs" ] ; then
+    docker_compose="docker-compose-1.18.0"
+  fi
+  for s0 in $(${docker_compose} -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do
       s0p=${s0%%[![:alnum:]]*}
       if ! test "${hofb[$s0p]+isset}"; then
           if test "${hofa[$s0p]+isset}"; then

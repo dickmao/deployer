@@ -1,7 +1,5 @@
 local aws_env = [
   "AWS_DEFAULT_REGION=" + std.extVar("AWS_DEFAULT_REGION"),
-  "AWS_ACCESS_KEY_ID=" + std.extVar("AWS_ACCESS_KEY_ID"),
-  "AWS_SECRET_ACCESS_KEY=" + std.extVar("AWS_SECRET_ACCESS_KEY"),
   "GIT_USER=" + std.extVar("GIT_USER"),
   "GIT_PASSWORD=" + std.extVar("GIT_PASSWORD"),
   "SES_USER=" + std.extVar("SES_USER"),
