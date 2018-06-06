@@ -65,7 +65,6 @@ RUN set -xe \
   && rm -rf /var/lib/apt/lists/*
 COPY ./redin.tmp ./redin.tmp
 COPY ./purge-old.sh ./purge-old.sh
-COPY ./purge-dead-links.py ./purge-dead-links.py
     """)
 
 ret = subprocess.call([join(wdir, '../ecr-build-and-push.sh'), join(wdir, 'Dockerfile.tmp'), 'redis-populate:latest'], cwd=wdir)
