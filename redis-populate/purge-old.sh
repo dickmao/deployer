@@ -27,6 +27,7 @@ while [ 1 ] ; do
           BEFORE=$(date --date="${expire} days ago" +%s)
           IDS=$(redis-cli${host}${port} -n $db --raw zrangebyscore item.index.posted.${expire} -inf $BEFORE | xargs echo -n)
           if [ ! -z "$IDS" ]; then
+            echo "Deleting $IDS..."
             KEYS=$(for i in $IDS; do echo -n "item.$i "; done)
             redis-cli${host}${port} -n $db DEL $KEYS
             redis-cli${host}${port} -n $db zrem item.index.price $IDS

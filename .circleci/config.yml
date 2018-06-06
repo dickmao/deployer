@@ -259,6 +259,7 @@ jobs:
             docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ newyork\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
             docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ listingsproject\\\\n" \> /etc/cron.hourly/b \; chmod ugo+x /etc/cron.hourly/b'
             docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ sfbay\\\\n" \> /etc/cron.hourly/c \; chmod ugo+x /etc/cron.hourly/c'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ dead\\\\n" \> /etc/cron.hourly/d \; chmod ugo+x /etc/cron.hourly/d'
 
   ecs-compose-down:
     docker:
