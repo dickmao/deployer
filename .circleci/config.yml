@@ -244,6 +244,7 @@ jobs:
             set -x
             source ./bash_aliases.sh
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/newyork.conf
+            docke-ecs ny-email bin/success-function -Dconfig.file=conf/sfbay.conf
 
   cron-spiders:
     docker:
