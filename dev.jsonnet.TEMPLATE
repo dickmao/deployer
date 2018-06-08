@@ -79,6 +79,10 @@ local composeUp(repository) = {
       command: ["sh", "-c", "/wait-for-it.sh -t 500 redis:6379 -- sh -c './purge-old.sh -h redis'"],
     },
     "ny-frontend": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]),
+    "sf-frontend": self["base_service"] + newPlayApp(repository, [ "MONGO_HOST=mongo" ]) + {
+      ports: [ "81:9000" ],
+      command: [ "-Dconfig.file=conf/sfbay.conf" ],
+    },
     "ny-email": self["base_service"] + newPlayEmail(repository, [ "MONGO_HOST=mongo" ]),
     "corenlp": self["base_service"] + newCoreNlp(repository, []),
     "scrapyd": self["scrapyd_volume_mounted_service"] + newScrapyd(repository, [ "scrapyd" ], []),
