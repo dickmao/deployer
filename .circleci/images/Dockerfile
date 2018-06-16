@@ -1,4 +1,4 @@
-FROM circleci/golang:1.9.2
+FROM circleci/golang:1.10
 ARG aws_region=us-east-2
 MAINTAINER dick <noreply@shunyet.com>
 RUN set -xe \
