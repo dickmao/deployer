@@ -24,7 +24,7 @@ jobs:
 
   build-ecscli:
     docker:
-      - image: circleci/golang:1.9.2
+      - image: circleci/golang:1.10
     steps:
       - run: 
           command: |
