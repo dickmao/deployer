@@ -382,7 +382,7 @@ workflows:
   scheduled-up:
     triggers:
       - schedule:
-          cron: "33 14 * * *"
+          cron: "00 11 * * *"
           filters:
             branches:
               only: master
@@ -425,8 +425,7 @@ workflows:
   scheduled-down:
     triggers:
       - schedule:
-#          cron: "0 23 * * *"
-          cron: "27 14 * * *"
+          cron: "0 23 * * *"
           filters:
             branches:
               only: master
