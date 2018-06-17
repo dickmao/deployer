@@ -118,9 +118,9 @@ function getServiceConfigs {
   eval $(getTaskConfigs)
   declare -A hofa
   docker_compose="docker-compose"
-  if [ ! -z "${ECS_CLUSTER:-}" ]; then
-    docker_compose="docker-compose-1.18.0"
-  fi
+#  if [ ! -z "${ECS_CLUSTER:-}" ]; then
+#    docker_compose="docker-compose-1.18.0"
+#  fi
   for s0 in $(${docker_compose} -p '' -f $STATEDIR/docker-compose.$STACK.json config --services); do
       s0p=${s0%%[![:alnum:]]*}
       if ! test "${hofb[$s0p]+isset}"; then
