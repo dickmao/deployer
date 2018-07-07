@@ -378,6 +378,16 @@ workflows:
           requires:
             - ecs-compose-down
 
+  scheduled-email:
+    triggers:
+      - schedule:
+          cron: "00 11 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - success-function
+
   # sepp2k no way for array to contain anchor steps and additional steps
   scheduled-up:
     triggers:
