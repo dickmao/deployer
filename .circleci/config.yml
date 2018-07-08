@@ -242,6 +242,7 @@ jobs:
       - run:
           command: |
             set -x
+            export ECS_CLUSTER=ecs-circleci-$(curl -sk https://circleci.com/api/v1.1/project/github/dickmao/deployer/tree/master?filter=successful |  jq -r 'map(select( .workflows | .workflow_name=="scheduled-up" )) | .[0] | .workflows | .workflow_id[-4:]')
             source ./bash_aliases.sh
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/newyork.conf
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/sfbay.conf
