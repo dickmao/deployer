@@ -80,9 +80,6 @@ function cloudtrails {
 function myip() {
   dig +short myip.opendns.com @resolver1.opendns.com
 }
-function circleapi() {
-  curl -sk -u 23d91363e2eec154ee619fa2a28c8536f47799f5: https://circleci.com/api/v1.1/$1
-}
 
 alias findtext='find -L . -type f -exec grep -Iq . {} \; -and -print 2>&1 | xargs egrep -n '
 function circleci() {
