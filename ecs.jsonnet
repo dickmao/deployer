@@ -47,7 +47,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
     "ny-email": self["base_service"] + devJsonnetTemplate.newPlayEmail(repository, play_env),
     "corenlp": self["base_service"] + devJsonnetTemplate.newCoreNlp(repository, []),
     scrapyd: self["scrapyd_volume_mounted_service"] + 
-      devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], []) + {
+      devJsonnetTemplate.newScrapyd(repository, ["sh", "-c", "./wait-for-it.sh -t 500 scrapoxy:8888 -- scrapyd"], [ "API_SCRAPOXY_PASSWORD=" + std.extVar("API_SCRAPOXY_PASSWORD") ]) + {
       ports: [ "6800" ],
     },
     scrapoxy: self["base_service"] + {
@@ -56,7 +56,7 @@ devJsonnetTemplate.composeUp(repository=repository) + {
       ports: [ "8888:8888", "8889:8889" ],
       environment: devJsonnetTemplate.aws_env + [
         "SERVICE_8888_NAME=_scrapoxy._tcp",
-        "COMMANDER_PASSWORD=foobar123",
+        "COMMANDER_PASSWORD=" + std.extVar("API_SCRAPOXY_PASSWORD"),
         "PROVIDERS_AWSEC2_REGION=" + std.extVar("AWS_DEFAULT_REGION"),
         "PROVIDERS_AWSEC2_INSTANCE_INSTANCETYPE=t2.nano",
       ],
