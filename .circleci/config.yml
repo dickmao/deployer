@@ -219,7 +219,7 @@ jobs:
             log=$(ssh-ecs 0 date -r /efs/var/lib/scrapyd/logs/tutorial/newyork +%s)
             log=$(echo "${log//[$'\t\r\n']}")
             log=$(echo "${log//[!0-9]/}")
-            while [ $inprog -lt 180 ] ; do
+            while [ $inprog -lt 240 ] ; do
               sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt "@$log")
               if echo $sshout | grep -q digest ; then 
                 echo Found digest later than $(date -d @$log)
@@ -393,7 +393,7 @@ workflows:
   scheduled-up:
     triggers:
       - schedule:
-          cron: "45 21 * * 6"
+          cron: "0 2 * * 1"
           filters:
             branches:
               only: master
