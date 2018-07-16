@@ -113,7 +113,7 @@ EOF
   fi
 
   # stackoverflow: herbert (user:134474)
-  API_SCRAPOXY_PASSWORD=$(</dev/urandom tr -dc 'A-Za-z0-9!$%+,-./:;<=>@[]^_`{|}~' | head -c 13  ; echo)
+  API_SCRAPOXY_PASSWORD=$(</dev/urandom tr -dc 'A-Za-z0-9+/' | head -c 13  ; echo)
 
   python render-docker-compose.py $mode --var cluster=$STACK --var GIT_USER=${GIT_USER} --var GIT_PASSWORD=${GIT_PASSWORD} --var AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID} --var AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY} --var AWS_DEFAULT_REGION=$(aws configure get region) --var MONGO_AUTH_STRING="admin:password@" --var SES_USER=${SES_USER} --var SES_PASSWORD=${SES_PASSWORD} --var GIT_BRANCH=${CIRCLE_BRANCH:-${GIT_BRANCH}} --var EIP_ADDRESS=${EIP_ADDRESS} --var API_SCRAPOXY_PASSWORD=${API_SCRAPOXY_PASSWORD}
 }
