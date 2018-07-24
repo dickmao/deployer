@@ -369,6 +369,8 @@ function docke-ecs {
     local vernum
     vernum=$(get-vernum)
     wrap-ssh-my "$vernum:$svc" $ip docke $svc $cmd
+  else
+    return 1
   fi
 }
 
@@ -378,6 +380,8 @@ function dockr-ecs {
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
     wrap-ssh-my "$vernum:$svc" $ip dockr $svc  
+  else
+    return 1
   fi
 }
 
