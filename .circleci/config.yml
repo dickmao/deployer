@@ -382,7 +382,7 @@ workflows:
   scheduled-email:
     triggers:
       - schedule:
-          cron: "23 14 * * *"
+          cron: "0 11 * * *"
           filters:
             branches:
               only: master
