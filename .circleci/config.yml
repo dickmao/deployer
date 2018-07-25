@@ -242,7 +242,7 @@ jobs:
       - run:
           command: |
             set -x
-            export ECS_CLUSTER=ecs-circleci-$(curl -sk https://circleci.com/api/v1.1/project/github/dickmao/deployer/tree/master?filter=successful |  jq -r 'map(select( .workflows | .workflow_name=="scheduled-up" )) | .[0] | .workflows | .workflow_id[-4:]')
+            export ECS_CLUSTER=$(grep -f <(curl -sk https://circleci.com/api/v1.1/project/github/dickmao/deployer/tree/master?filter=successful |  jq -r 'map(select( .workflows | .workflow_name=="scheduled-up" )) | .[] | .workflows | .workflow_id[-4:]' | uniq) <(for c in $(aws ecs list-clusters | jq -r '.clusterArns[]') ; do basename $c ; done ) | head -1)
             source ./bash_aliases.sh
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/newyork.conf
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/sfbay.conf
@@ -382,7 +382,7 @@ workflows:
   scheduled-email:
     triggers:
       - schedule:
-          cron: "00 11 * * *"
+          cron: "23 14 * * *"
           filters:
             branches:
               only: master
