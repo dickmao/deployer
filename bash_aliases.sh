@@ -151,7 +151,7 @@ function wrap-ssh-my() {
 }
 
 function ssh-my() {
-    ssh -x -o StrictHostKeyChecking=no -t ec2-user@$*
+    ssh -x -o LogLevel=QUIET -o StrictHostKeyChecking=no -t ec2-user@$*
 }
 
 function export_from_config() {

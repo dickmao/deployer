@@ -62,6 +62,17 @@ if [ -z "${nosnap:-}" ]; then
   fi
 fi
 
+ACCOUNT=$(aws sts get-caller-identity --output text --query 'Account')
+REGION=$(aws configure get region)
+LOGDATE=$(date +%Y%m%dT%H%M%S)
+s3cmd mb s3://${ACCOUNT}.play-logback --region $REGION 2> /dev/null || [ $? == 13 ]
+rendered_string=$(render_string ecs)
+for frontend in $(echo $rendered_string | jq -r '.services | keys' | sed s/\[\",\]//g | grep frontend) ; do
+    if ssh -x -o LogLevel=QUIET -o StrictHostKeyChecking=no ec2-user@$(get-ip-for-svc $frontend) docke $frontend tar cfz - ./logs > ./${frontend}-${LOGDATE}.tgz ; then
+      s3cmd put ./${frontend}-${LOGDATE}.tgz s3://${ACCOUNT}.play-logback/$(date +%Y%m) --region $REGION
+    fi
+done
+
 ${wd}/ecs-compose-down.sh $VERNUM
 
 TASKDEF=$(aws ecs describe-services --cluster $STACK --services $(basename `pwd`) | jq -r ' .services[0] | .taskDefinition ')
