@@ -393,7 +393,7 @@ workflows:
   scheduled-up:
     triggers:
       - schedule:
-          cron: "46 13 * * 1"
+          cron: "2 5 * * 1"
           filters:
             branches:
               only: master
