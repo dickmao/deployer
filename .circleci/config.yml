@@ -378,3 +378,72 @@ workflows:
       - ecs-down:
           requires:
             - ecs-compose-down
+
+  scheduled-email:
+    triggers:
+      - schedule:
+          cron: "0 11 * * *"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - success-function
+
+  # sepp2k no way for array to contain anchor steps and additional steps
+  scheduled-up:
+    triggers:
+      - schedule:
+          cron: "2 5 * * 1"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-up-internet:
+          requires:
+            - build-deployer-image
+            - build-ecscli
+      - push-redis-populate:
+          requires:
+            - build-deployer-image
+      - ecs-compose-up-except-dedupe:
+          requires:
+            - ecs-up-internet
+            - push-redis-populate
+      - login-node:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - once-dedupe:
+          requires:
+            - ecs-compose-up-except-dedupe
+      - spider-newyork:
+          requires:
+            - once-dedupe
+      - wait-for-digest:
+          requires:
+            - spider-newyork
+      - success-function:
+          requires:
+            - wait-for-digest
+      - cron-spiders:
+          requires:
+            - wait-for-digest
+      - ecs-compose-up-dedupe:
+          requires:
+            - wait-for-digest
+
+  scheduled-down:
+    triggers:
+      - schedule:
+          cron: "32 4 * * 1"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-down-all:
+          requires:
+            - build-deployer-image
+            - build-ecscli
