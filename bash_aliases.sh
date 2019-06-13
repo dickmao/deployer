@@ -2,20 +2,22 @@ declare -A clustersvc2ip
 clustersvc2ip["0000:"]="localhost"
 
 function failed {
+  local project
+  project=$(basename $(pwd))
   local buildnum
   local step
   local token
   token=$(cat ~/aws/circleci.api)
-  buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer?filter=failed | jq -r '.[0] | .build_num')}
+  buildnum=${1:-$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/$project?filter=failed | jq -r '.[0] | .build_num')}
   local explicit_step
   explicit=${2:-}
   if [ -z $explicit ] ; then
-    step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' )
+    step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/$project/$buildnum | jq -r '.steps[] | select(.actions | select( .[] | .failed==true)) | .actions[] | .output_url' )
     if [ -z $step ]; then
-      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r '.steps[-1] | .actions[] | .output_url' )
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/$project/$buildnum | jq -r '.steps[-1] | .actions[] | .output_url' )
     fi
   else
-      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/deployer/$buildnum | jq -r ".steps[$explicit] | .actions[] | .output_url" )
+      step=$(curl -sku $token: https://circleci.com/api/v1.1/project/github/dickmao/$project/$buildnum | jq -r ".steps[$explicit] | .actions[] | .output_url" )
   fi
   curl -s $step | gzip -dc| jq -r '.[] | .message' | dos2unix
 }
@@ -115,7 +117,7 @@ function whatis() {
 }
 alias gitout="git log --graph --oneline --all --decorate"
 alias killcorenlp="wget localhost:9005/shutdown?key=\$(cat /var/tmp/corenlp.shutdown) -O -"
-git config --global alias.conflicts "diff --name-only --diff-filter=U"
+# git config --global alias.conflicts "diff --name-only --diff-filter=U"
 
 # export SBT_OPTS="-Xmx4g"
 # export DOCKER_HOST_IP=$(ifconfig docker0 | grep -w inet | awk '{print $2}')
