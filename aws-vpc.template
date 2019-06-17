@@ -43,6 +43,7 @@
                     "Parameters": [
                         "EcsCluster",
                         "KeyPairName",
+                        "EcsInstanceType",
                         "NATInstanceType"
                     ]
                 }
@@ -59,6 +60,9 @@
                 },
                 "EcsCluster": {
                     "default": "ECS cluster"
+                },
+                "EcsInstanceType": {
+                    "default": "ECS instance type"
                 },
                 "KeyPairName": {
                     "default": "Key pair name"
@@ -139,6 +143,10 @@
         },
         "EcsCluster": {
             "Description": "Name of ECS cluster used to tag NAT gateways for decomissioning.",
+            "Type": "String"
+        },
+        "EcsInstanceType": {
+            "Description": "ECS EC2 instance type.",
             "Type": "String"
         },
         "KeyPairName": {
@@ -282,6 +290,18 @@
         }
     },
     "Conditions": {
+        "PlayAppEIPCondition": {
+            "Fn::Not": [
+                {
+                    "Fn::Equals": [
+                        {
+                            "Ref": "EcsInstanceType"
+                        },
+                        "t2.micro"
+                    ]
+                }
+            ]
+        },
         "3AZCondition": {
             "Fn::Or": [
                 {
@@ -1751,6 +1771,7 @@
             }
         },
         "PlayAppEIP": {
+            "Condition": "PlayAppEIPCondition",
             "DependsOn": "VPCGatewayAttachment",
             "Type": "AWS::EC2::EIP",
             "Properties": {
@@ -2274,6 +2295,7 @@
     },
     "Outputs": {
         "PlayAppEIP": {
+            "Condition": "PlayAppEIPCondition",
             "Description": "Assign me",
             "Value": {
                 "Ref": "PlayAppEIP"

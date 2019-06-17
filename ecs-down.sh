@@ -70,6 +70,8 @@ rendered_string=$(render_string ecs)
 for frontend in $(echo $rendered_string | jq -r '.services | keys' | sed s/\[\",\]//g | grep frontend) ; do
     if ssh -x -o LogLevel=QUIET -o StrictHostKeyChecking=no ec2-user@$(get-ip-for-svc $frontend) docke $frontend tar cfz - ./logs > ./${frontend}-${LOGDATE}.tgz ; then
       s3cmd put ./${frontend}-${LOGDATE}.tgz s3://${ACCOUNT}.play-logback/$(date +%Y%m)/${frontend}-${LOGDATE}.tgz --region $REGION
+    else
+      rm -f "./${frontend}-${LOGDATE}.tgz"
     fi
 done
 

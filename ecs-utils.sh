@@ -97,8 +97,7 @@ EOF
   local EIP_ADDRESS
   EIP_ADDRESS=$(aws cloudformation list-exports | jq -r '.Exports[] | select((.Name | startswith("'$STACK'")) and (.Name | endswith("PlayAppEIP"))) | .Value')
   if [ $mode == "ecs" ] && [ -z $EIP_ADDRESS ]; then
-    echo Warn Could not find PlayAppEIP for $STACK
-    exit -1
+    printf "Warn: could not find PlayAppEIP for %s\n" $STACK >&2
   fi
 
   if [ -z "${AWS_ACCESS_KEY_ID-}" ] ; then

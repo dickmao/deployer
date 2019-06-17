@@ -16,6 +16,7 @@ import botocore.exceptions
 import datetime
 import logging
 import os
+import sys
 
 import boto3
 from git import Repo
@@ -174,8 +175,8 @@ if __name__ == "__main__":
     try:
         stack_name = [stack['StackName'] for stack in stacks if stack['StackName'].startswith(stack_prefix)][0]
     except IndexError:
-        logger.error("No stack begins with {}".format(stack_prefix))
-        raise
+        logger.warn("No stack begins with {}".format(stack_prefix))
+        sys.exit(0)
 
     response = cf_client.describe_stacks(StackName=stack_name)
     policy_table = boto3.resource('dynamodb').Table(get_output_value(response, 'PolicyDDBTableName'))

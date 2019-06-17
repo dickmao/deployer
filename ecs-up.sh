@@ -1,10 +1,27 @@
 #!/bin/bash -euxE
 
+wd=$(dirname $0)
+
 while [[ $# -gt 0 ]] ; do
   key="$1"
   case "$key" in
       --internet)
       internet=" --var elb_scheme=internet-facing"
+      shift
+      ;;
+      --template)
+      TEMPLATE=$2
+      shift
+      shift
+      ;;
+      --instance-type)
+      itype=$2
+      shift
+      shift
+      ;;
+      --size)
+      size=$2
+      shift
       shift
       ;;
       *)
@@ -74,7 +91,6 @@ containsElement () {
   return 1
 }
 
-wd=$(dirname $0)
 VERNUM="${1:-0}"
 command="template"
 if [ $VERNUM != "0" ]; then
@@ -111,7 +127,7 @@ if ! aws ec2 describe-key-pairs --key-names $KEYFORNOW ; then
     echo Keypair "${KEYFORNOW}" needs to be manually uploaded
 fi
 
-TEMPLATE="${wd}/dns.template"
+TEMPLATE=${TEMPLATE:-${wd}/dns.template}
 s3_publish "quickstart-mongodb"
 refresh_templates $TEMPLATE
 ECSCLIPATH="$GOPATH/src/github.com/aws/amazon-ecs-cli"
@@ -120,7 +136,9 @@ $ECSCLIBIN configure --cfn-stack-name="$STACK" --cluster "$STACK" --region $REGI
 IMAGE=$(aws ec2 describe-images --owners amazon --filter="Name=name,Values=*-ecs-optimized" | jq -r '.Images[] | "\(.Name)\t\(.ImageId)"' | sort -r | head -1 | cut -f2)
 grab="$(mktemp /tmp/ecs-up.XXXXXX)"
 set -o pipefail
-$ECSCLIBIN $command --instance-type m4.large --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair $KEYFORNOW --capability-iam --size 2 --disable-rollback 2>&1 | tee $grab
+itype=${itype:-m4.large}
+size=${size:-2}
+$ECSCLIBIN $command --instance-type $itype --force --cluster "$STACK" --image-id $IMAGE --template https://s3.amazonaws.com/${ACCOUNT}.templates/$(basename $TEMPLATE) --keypair $KEYFORNOW --capability-iam --size $size --disable-rollback 2>&1 | tee $grab
 set +o pipefail
 
 
@@ -149,10 +167,10 @@ set +o pipefail
 # aws events put-targets --rule registerEcsServiceDnsRule --targets "Id"="Target1","Arn"=$FUNCTIONARN
 
 tgarns=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups | map(select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn) | .[]')
-if [ -z "$tgarns" ]; then
-    echo ERROR Problem finding targetarns
-    exit -1
-fi
+# if [ -z "$tgarns" ]; then
+#     echo ERROR Problem finding targetarns
+#     exit -1
+# fi
 IFS=$'\n'
 for tgarn in $tgarns; do
     toarr=$(aws elbv2 describe-target-health --target-group-arn $tgarn | jq -r '.TargetHealthDescriptions[] | .Target | "Id=\(.Id),Port=\(.Port)" ')

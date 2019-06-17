@@ -1,0 +1,12 @@
+batch/*
+ecs-state
+*.pyc
+git.store
+redis-populate
+circleci*
+cancel-build.sh
+alicia.pem
+ecs-ec2-spot-fleet*
+*credentials*
+*installs*
+target
