@@ -426,17 +426,14 @@ workflows:
   scheduled-down:
     triggers:
       - schedule:
-          cron: "0 15 * * *"
+          cron: "39 15 * * *"
           filters:
             branches:
               only: master
     jobs:
       - build-deployer-image
       - build-ecscli
-      - ecs-compose-down:
+      - ecs-down-all:
           requires:
             - build-deployer-image
             - build-ecscli
-      - ecs-down:
-          requires:
-            - ecs-compose-down
