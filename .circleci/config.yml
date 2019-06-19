@@ -270,6 +270,19 @@ jobs:
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/sfbay.conf
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/newyork.conf
 
+  cron-spider:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ lgi\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
+
   schedule-lgi:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -378,13 +391,13 @@ workflows:
           requires:
             - build-deployer-image
             - build-ecscli
-      - schedule-lgi:
+      - cron-spider:
           requires:
             - scrapoxy-up
       - hold:
           type: approval
           requires: 
-            - schedule-lgi
+            - cron-spider
       - ecs-compose-down:
           requires:
             - hold
@@ -406,7 +419,7 @@ workflows:
           requires:
             - build-deployer-image
             - build-ecscli
-      - schedule-lgi:
+      - cron-spider:
           requires:
             - scrapoxy-up
 
