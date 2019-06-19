@@ -281,7 +281,7 @@ jobs:
           command: |
             set -x
             source ./bash_aliases.sh
-            docke-ecs scrapyd-crawl '/bin/bash -lc "schedule newyork"'
+            docke-ecs scrapyd-crawl bash -lc \"schedule lgi\"
 
   cron-spiders:
     docker:
