@@ -406,3 +406,7 @@ function ssh-ecs {
     wrap-ssh-my "$vernum:$svc" $ip $cmd
   fi
 }
+
+function read-data {
+  while IFS= read -r line ; do jsonlint <(echo $line) ; done < "$1"
+}
