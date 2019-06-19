@@ -54,6 +54,29 @@ jobs:
           command: |
             python ./redis-populate/docker-build.py
 
+  scrapoxy-up:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+        aws_auth:
+          aws_access_key_id: $AWS_ACCESS_KEY_ID
+          aws_secret_access_key: $AWS_SECRET_ACCESS_KEY
+    steps:
+      - checkout
+      - restore_cache:
+          keys: ecscli
+      - run:
+          command: |
+            set -x
+            ./scrapoxy-up.sh
+      - persist_to_workspace:
+          root: ecs-state
+          paths:
+            - "*"
+      - persist_to_workspace:
+          root: ../.cache
+          paths:
+            - "ecs-cli"
+
   ecs-up:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -247,6 +270,19 @@ jobs:
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/sfbay.conf
             docke-ecs ny-email bin/success-function -Dconfig.file=conf/newyork.conf
 
+  schedule-lgi:
+    docker:
+      - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
+    steps:
+      - checkout
+      - attach_workspace:
+          at: ecs-state
+      - run:
+          command: |
+            set -x
+            source ./bash_aliases.sh
+            docke-ecs scrapyd-crawl '/bin/bash -lc "schedule newyork"'
+
   cron-spiders:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
@@ -338,43 +374,56 @@ workflows:
     jobs:
       - build-deployer-image
       - build-ecscli
-      - ecs-up:
+      - scrapoxy-up:
           requires:
             - build-deployer-image
             - build-ecscli
-      - push-redis-populate:
+      - schedule-lgi:
           requires:
-            - build-deployer-image
-      - ecs-compose-up-except-dedupe:
-          requires:
-            - ecs-up
-            - push-redis-populate
-      - login-node:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - once-dedupe:
-          requires:
-            - ecs-compose-up-except-dedupe
-      - spider-newyork:
-          requires:
-            - once-dedupe
-      - spider-listingsproject:
-          requires:
-            - once-dedupe
-      - wait-for-digest:
-          requires:
-            - spider-newyork
-            - spider-listingsproject
-      - ecs-compose-up-dedupe:
-          requires:
-            - wait-for-digest
+            - scrapoxy-up
       - hold:
           type: approval
           requires: 
-            - wait-for-digest
+            - schedule-lgi
       - ecs-compose-down:
           requires:
             - hold
+      - ecs-down:
+          requires:
+            - ecs-compose-down
+
+  scheduled-up:
+    triggers:
+      - schedule:
+          cron: "0 13 * * 1"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - scrapoxy-up:
+          requires:
+            - build-deployer-image
+            - build-ecscli
+      - schedule-lgi:
+          requires:
+            - scrapoxy-up
+
+  scheduled-down:
+    triggers:
+      - schedule:
+          cron: "45 13 * * 1"
+          filters:
+            branches:
+              only: master
+    jobs:
+      - build-deployer-image
+      - build-ecscli
+      - ecs-compose-down:
+          requires:
+            - build-deployer-image
+            - build-ecscli
       - ecs-down:
           requires:
             - ecs-compose-down

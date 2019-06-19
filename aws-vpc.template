@@ -44,6 +44,7 @@
                         "EcsCluster",
                         "KeyPairName",
                         "EcsInstanceType",
+                        "AsgMaxSize",
                         "NATInstanceType"
                     ]
                 }
@@ -63,6 +64,9 @@
                 },
                 "EcsInstanceType": {
                     "default": "ECS instance type"
+                },
+                "AsgMaxSize": {
+                    "default": "Auto-scaling group size"
                 },
                 "KeyPairName": {
                     "default": "Key pair name"
@@ -148,6 +152,11 @@
         "EcsInstanceType": {
             "Description": "ECS EC2 instance type.",
             "Type": "String"
+        },
+        "AsgMaxSize": {
+            "Description": "Maximum size and initial Desired Capacity of ECS Auto Scaling Group",
+            "Type": "Number",
+            "Default": "1"
         },
         "KeyPairName": {
             "Description": "Public/private key pairs allow you to securely connect to your NAT instance after it launches. This is used only if the region does not support NAT gateways.",
@@ -295,9 +304,9 @@
                 {
                     "Fn::Equals": [
                         {
-                            "Ref": "EcsInstanceType"
+                            "Ref": "AsgMaxSize"
                         },
-                        "t2.micro"
+                        "1"
                     ]
                 }
             ]

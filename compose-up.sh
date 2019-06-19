@@ -118,16 +118,14 @@ for k in "${!hofa[@]}" ; do
         # query target group arn for listener on that port
         targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Port=='$PORT') | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
         if [ -z $targetarn ]; then
-          echo ERROR Problem finding targetarn
-          exit -1
+            echo WARN Problem finding targetarn
+        else
+            # targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Tags[] | select(.Key=="LoadBalancerPort" and .Value=="'$PORTS'") | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
+            # targetarn=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-0001|jq -r '.StackResources[] | select(.ResourceType=="AWS::ElasticLoadBalancingV2::TargetGroup") | .PhysicalResourceId')
+            # service specifies desired count of tasks which are composed of container-names
+            ECSROLE=$(aws iam list-roles | jq -r ".Roles[] | select(.RoleName | contains(\"${STACK}-ECSRole\")) | .RoleName")
+            elb=" --target-group-arn $targetarn --container-name $SERVICE --container-port $PORT --role $ECSROLE"
         fi
-
-        # targetarn=$(aws elbv2 describe-target-groups | jq -r '.TargetGroups[] | select(.Tags[] | select(.Key=="LoadBalancerPort" and .Value=="'$PORTS'") | select(.TargetGroupArn | contains("'$STACK'")) | .TargetGroupArn')
-
-        # targetarn=$(aws cloudformation describe-stack-resources --stack-name ecs-dick-0001|jq -r '.StackResources[] | select(.ResourceType=="AWS::ElasticLoadBalancingV2::TargetGroup") | .PhysicalResourceId')
-        # service specifies desired count of tasks which are composed of container-names
-        ECSROLE=$(aws iam list-roles | jq -r ".Roles[] | select(.RoleName | contains(\"${STACK}-ECSRole\")) | .RoleName")
-        elb=" --target-group-arn $targetarn --container-name $SERVICE --container-port $PORT --role $ECSROLE"
     fi
 
     if ( [ ${#only[@]} -ne 0 ] && test "${only[$k]+isset}" ) || 
