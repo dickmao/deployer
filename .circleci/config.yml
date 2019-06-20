@@ -281,7 +281,10 @@ jobs:
           command: |
             set -x
             source ./bash_aliases.sh
-            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ lgi\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ lgi\\\\n" \> /etc/cron.hourly/z \; chmod ugo+x /etc/cron.hourly/z'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ newyork\\\\n" \> /etc/cron.hourly/a \; chmod ugo+x /etc/cron.hourly/a'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ listingsproject\\\\n" \> /etc/cron.hourly/b \; chmod ugo+x /etc/cron.hourly/b'
+            docke-ecs scrapyd-crawl 'printf -- "\#!/bin/bash\ -l\\\\nschedule\ sfbay\\\\n" \> /etc/cron.hourly/c \; chmod ugo+x /etc/cron.hourly/c'
 
   schedule-lgi:
     docker:
@@ -408,7 +411,7 @@ workflows:
   scheduled-up:
     triggers:
       - schedule:
-          cron: "25 14 * * *"
+          cron: "5 15 * * *"
           filters:
             branches:
               only: master
@@ -426,7 +429,7 @@ workflows:
   scheduled-down:
     triggers:
       - schedule:
-          cron: "39 15 * * *"
+          cron: "45 15 * * *"
           filters:
             branches:
               only: master
