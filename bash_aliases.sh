@@ -83,7 +83,7 @@ function myip() {
   dig +short myip.opendns.com @resolver1.opendns.com
 }
 
-alias findtext='find -L . -type f -exec grep -Iq . {} \; -and -print 2>&1 | xargs egrep -n '
+alias findtext='find -L . -path ./.cos -prune -false -o -type f -exec grep -Iq . {} \; -and -print 2>&1 | xargs egrep -n '
 function circleci() {
   declare -A aa
   IFS=$'\n'
@@ -105,12 +105,12 @@ EOF
   fi
 }
 alias gradle='gradle -console plain'
-alias findfiles='find -L . -type f 2>&1| egrep '
+alias findfiles='find -L . -path ./.cos -prune -false -o -type f 2>&1| egrep '
 alias pycheck='python -m py_compile '
 alias danglers='docker rmi $(docker images --quiet --filter "dangling=true")'
 alias dos="tr -d '\015' <"
 alias pricing="curl -s http://localhost:8080/ec2/regions/us-east-2 | jq -r '.[] | select(.price < 0.40) | [.type , .price ] '"
-alias drown="nohup play -n synth brownnoise synth pinknoise mix synth sine amod 0.17 10 >/dev/null 2>/dev/null &"
+alias drown="nohup play -n synth brownnoise synth pinknoise mix synth sine amod 0.17 85 >/dev/null 2>/dev/null &"
 alias killdrown="ps -ef|grep -w brownnoise | awk '{print \$2}' | xargs kill"
 function whatis() {
     cat $1 | shyaml get-value $2
@@ -204,7 +204,10 @@ function dockr {
   docker rm -f $(docker ps -aq --filter "label=com.docker.compose.service=$1" | head -1)
 }
 function dockrm {
-  docker ps -a | cut -d' ' -f1 | grep -v CONTAINER | xargs docker rm 
+  docker ps -a | cut -d' ' -f1 | grep -v CONTAINER | xargs docker rm
+}
+function dockc {
+  docker inspect --format='{{.Id}} {{.Parent}}' $(docker images --filter since=$1 --quiet)
 }
 
 function get-cluster {
@@ -240,7 +243,7 @@ function rsync-from-ecs {
   vernum=$(get-vernum ${3:-})
   rsync -vaze "ssh -i ~/.ssh/id_rsa" ec2-user@$(aws ec2 describe-instances --instance-ids $(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $(aws ecs list-container-instances --cluster $(get-cluster $vernum) | jq -r '.[] | .[]') | jq -r ".containerInstances[$which] | .ec2InstanceId ") --query "Reservations[*].Instances[*].PublicIpAddress" --output text):$src $dest
 }
-  
+
 function scp-ecs {
   src=${1:-}
   dest=${2:-}
@@ -260,7 +263,7 @@ function awslog2 {
   group_name='/aws/batch/job'
   stream_name=$(aws logs describe-log-streams --log-group-name ${group_name} --descending --order-by LastEventTime --max-items 1  | jq -r ' .logStreams[0] | .logStreamName ')
   start_seconds_ago=300
-  
+
   start_time=$(( ( $(date -u +"%s") - $start_seconds_ago ) * 1000 ))
   while [[ -n "$start_time" ]]; do
     loglines=$( aws --output text logs get-log-events --log-group-name "$group_name" --log-stream-name "$stream_name" --start-time $start_time )
@@ -301,7 +304,7 @@ function q_cluster_changed {
       return 1
     fi
   fi
-  return 0   
+  return 0
 }
 
 function get-ip-for-index {
@@ -321,7 +324,7 @@ function get-ip-for-index {
     echo $ip
   fi
 }
-  
+
 
 function get-ip-for-svc {
   svc="${1:-}"
@@ -332,13 +335,13 @@ function get-ip-for-svc {
     return
   fi
 
-  for arn in $(aws ecs list-tasks --cluster $(get-cluster $vernum) | jq -r '.taskArns[] ') ; do 
+  for arn in $(aws ecs list-tasks --cluster $(get-cluster $vernum) | jq -r '.taskArns[] ') ; do
     group_inst=$(aws ecs describe-tasks --cluster $(get-cluster $vernum) --tasks $arn | jq -r '.tasks[] | "\(.group) \(.containerInstanceArn)" ')
     group=${group_inst%% *}
     group=${group##*:}
     group=${group%%-*}
     inst=${group_inst##* }
-    if [ $group == $sgroup ] ; then 
+    if [ $group == $sgroup ] ; then
       ec2=$(aws ecs describe-container-instances --cluster $(get-cluster $vernum) --container-instances $inst | jq -r '.containerInstances[] | .ec2InstanceId')
       ip=$(aws ec2 describe-instances --instance-ids $ec2 --query "Reservations[*].Instances[*].PublicIpAddress" --output text)
       clustersvc2ip["${vernum}:${svc}"]=$ip
@@ -381,7 +384,7 @@ function dockr-ecs {
   vernum=$(get-vernum ${2:-})
   ip=$(get-ip-for-svc $svc $vernum)
   if [ ! -z $ip ]; then
-    wrap-ssh-my "$vernum:$svc" $ip dockr $svc  
+    wrap-ssh-my "$vernum:$svc" $ip dockr $svc
   else
     return 1
   fi
@@ -394,7 +397,7 @@ function ssh-ecs {
   vernum=$(get-vernum)
   re='^[0-9]+$' # yes, i have to assign it first.  See SO Charles Duffy
   local ip
-  ip=""  
+  ip=""
   if [[ $svc =~ $re ]]; then
     ip=$(get-ip-for-index $svc $vernum)
   else
@@ -408,5 +411,9 @@ function ssh-ecs {
 }
 
 function read-data {
-  while IFS= read -r line ; do jsonlint <(echo $line) ; done < "$1"
+  while IFS= read -r line ; do jsonlint <(echo "$line") ; done < "$1"
+}
+
+function grab-lgi {
+  foo=$(s3cmd ls s3://303634175659.lgi/Data.* | sort | tail -1 | awk '{print $NF}') ; if [ ! -e $(basename $foo) ] ; then s3cmd get --quiet --force $foo ; fi ; read-data $(basename $foo)
 }

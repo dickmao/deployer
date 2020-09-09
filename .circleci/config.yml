@@ -14,7 +14,7 @@ jobs:
       - setup_remote_docker:
           docker_layer_caching: false
 
-      - run: 
+      - run:
           command: |
             set -x
             eval `aws ecr get-login --no-include-email --region $AWS_REGION`
@@ -26,7 +26,7 @@ jobs:
     docker:
       - image: circleci/golang:1.10
     steps:
-      - run: 
+      - run:
           command: |
             set -x
             # Thanks @bobziuchkovski
@@ -37,7 +37,7 @@ jobs:
             (cd /go/src/github.com/aws/amazon-ecs-cli ; go get ./... && make)
       - save_cache:
           key: ecscli-{{ checksum "/go/src/github.com/aws/amazon-ecs-cli/.git/index" }}
-          paths: 
+          paths:
             - /go/src/github.com/aws/amazon-ecs-cli
 
   push-redis-populate:
@@ -213,8 +213,8 @@ jobs:
             set -x
             source ./bash_aliases.sh
             docke-ecs scrapyd-crawl "./wait-for-it.sh -t 500 scrapyd:6800 -- scrapyd-client -t http://scrapyd:6800 schedule -p tutorial newyork"
-  
-  spider-listingsproject: 
+
+  spider-listingsproject:
     docker:
       - image: 303634175659.dkr.ecr.us-east-2.amazonaws.com/circleci:deployer
     steps:
@@ -244,7 +244,7 @@ jobs:
             log=$(echo "${log//[!0-9]/}")
             while [ $inprog -lt 360 ] ; do
               sshout=$(ssh-ecs 0 find -L /efs/var/lib/scrapyd/items/tutorial/newyork/digest -newermt "@$log")
-              if echo $sshout | grep -q digest ; then 
+              if echo $sshout | grep -q digest ; then
                 echo Found digest later than $(date -d @$log)
                 ssh-ecs 0 ls -l /efs/var/lib/scrapyd/items/tutorial/newyork/digest
                 exit 0
@@ -399,7 +399,7 @@ workflows:
             - scrapoxy-up
       - hold:
           type: approval
-          requires: 
+          requires:
             - cron-spider
       - ecs-compose-down:
           requires:
